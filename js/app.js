@@ -93,6 +93,27 @@ function el(tag, attrs = {}, children = []) {
   return node;
 }
 
+function mapsUrl(query) {
+  return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(query)}`;
+}
+
+function mapPinIcon() {
+  return el("span", {
+    class: "pin-icon",
+    "aria-hidden": "true",
+    html:
+      '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>',
+  });
+}
+
+function directionsLink(query, label = "Get directions") {
+  return el(
+    "a",
+    { href: mapsUrl(query), class: "directions-link", target: "_blank", rel: "noopener" },
+    [mapPinIcon(), label]
+  );
+}
+
 function placeholderRow(label) {
   return el("div", { class: "placeholder-row" }, [
     el("span", { class: "placeholder-label" }, label),
@@ -205,8 +226,12 @@ function renderLeg(leg) {
   if (p.address) {
     if (p.address.exact) {
       accomChildren.push(infoRow("Address", p.address.exact));
+      accomChildren.push(directionsLink(p.address.exact));
     } else {
       accomChildren.push(placeholderRow(p.address.area ? `Address (${p.address.area})` : "Address"));
+      if (p.address.area) {
+        accomChildren.push(directionsLink(`${p.address.area}, ${leg.location}`, "View area on map"));
+      }
     }
   }
 
@@ -250,6 +275,7 @@ function renderLeg(leg) {
               el("p", { class: "note-text" }, leg.eventFlag.dates),
             ]),
           ]),
+          directionsLink(`Moody Center, ${leg.location}`, "Get directions to Moody Center"),
         ],
         "card--accent"
       )
@@ -300,12 +326,17 @@ function renderLeg(leg) {
           el(
             "ul",
             { class: "place-list" },
-            group.places.map((place) =>
-              el("li", { class: "place-item" }, [
-                el("span", { class: "place-name" }, place.name),
-                el("span", { class: "place-time" }, place.time),
-              ])
-            )
+            group.places.map((place) => {
+              const query = `${place.name.replace(/\s*\([^)]*\)\s*/g, "").trim()}, ${leg.location}`;
+              return el(
+                "li",
+                {},
+                el("a", { href: mapsUrl(query), class: "place-item", target: "_blank", rel: "noopener" }, [
+                  el("span", { class: "place-name" }, place.name),
+                  el("span", { class: "place-time" }, [place.time, mapPinIcon()]),
+                ])
+              );
+            })
           ),
         ])
       );
@@ -459,13 +490,24 @@ function renderBucket() {
     if (isChecked) checked += 1;
     const li = el("li", { class: `checklist-item ${isChecked ? "checklist-item--checked" : ""}` });
     const box = el("span", { class: "checkbox", "aria-hidden": "true" });
-    const label = el("span", { class: "checklist-label" }, item);
+    const label = el("span", { class: "checklist-label" }, item.text);
     li.append(box, label);
     li.addEventListener("click", () => {
       state[key] = !state[key];
       saveState(STORAGE_KEYS.bucket, state);
       render();
     });
+    if (item.map) {
+      const pin = el("a", {
+        href: mapsUrl(item.map),
+        class: "bucket-pin",
+        target: "_blank",
+        rel: "noopener",
+        "aria-label": `Get directions to ${item.text}`,
+      }, mapPinIcon());
+      pin.addEventListener("click", (e) => e.stopPropagation());
+      li.append(pin);
+    }
     list.append(li);
   });
 

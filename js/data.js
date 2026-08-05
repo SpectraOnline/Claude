@@ -271,18 +271,18 @@ const USEFUL_INFO = [
 ];
 
 const BUCKET_LIST = [
-  "Attend PBR Teams: Gambler Days",
-  "Watch the Austin Gamblers compete",
-  "Visit Boot Barn",
-  "Visit Sheplers",
-  "Buy a quality pair of cowboy boots",
-  "Eat authentic Texas BBQ",
-  "Explore Downtown Austin",
-  "Walk along South Congress",
-  "Visit the Texas State Capitol (if time permits)",
-  "Listen to live music",
-  "Take photos at the Moody Center",
-  "Buy one souvenir that reminds you of Texas",
+  { text: "Attend PBR Teams: Gambler Days" },
+  { text: "Watch the Austin Gamblers compete" },
+  { text: "Visit Boot Barn", map: "Boot Barn, Austin, TX" },
+  { text: "Visit Sheplers", map: "Sheplers, Austin, TX" },
+  { text: "Buy a quality pair of cowboy boots" },
+  { text: "Eat authentic Texas BBQ" },
+  { text: "Explore Downtown Austin", map: "Downtown Austin, TX" },
+  { text: "Walk along South Congress", map: "South Congress Avenue, Austin, TX" },
+  { text: "Visit the Texas State Capitol (if time permits)", map: "Texas State Capitol, Austin, TX" },
+  { text: "Listen to live music" },
+  { text: "Take photos at the Moody Center", map: "Moody Center, Austin, TX" },
+  { text: "Buy one souvenir that reminds you of Texas" },
 ];
 
 const FLIGHT_FIELDS = [

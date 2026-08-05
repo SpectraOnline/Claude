@@ -354,22 +354,63 @@ main {
 /* Places */
 
 .place-list { display: flex; flex-direction: column; gap: 0; }
+.place-list li:last-child .place-item { border-bottom: none; }
 .place-item {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   padding: 9px 0;
   border-bottom: 1px solid var(--border);
   font-size: 14px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
-.place-item:last-child { border-bottom: none; }
-.place-name { flex: 1; }
+.place-item:active { opacity: 0.65; }
+.place-name { flex: 1; color: var(--text); }
 .place-time {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   color: var(--accent);
   font-weight: 600;
   font-size: 13px;
   flex-shrink: 0;
   margin-left: 12px;
 }
+.pin-icon {
+  display: inline-flex;
+  color: var(--accent);
+}
+
+/* Directions link (standalone) */
+
+.directions-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-start;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, white);
+  padding: 7px 12px;
+  border-radius: 999px;
+}
+.directions-link:active { opacity: 0.7; }
+
+/* Bucket list directions pin */
+
+.bucket-pin {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  margin-left: auto;
+  color: var(--accent);
+  flex-shrink: 0;
+}
+.bucket-pin:active { opacity: 0.6; }
 
 /* Rules list */
 
