@@ -5,7 +5,7 @@
 // so updates show up immediately instead of one reload behind. Cache is
 // only used as a fallback when there's genuinely no network (offline use
 // while travelling), not as the default source.
-const CACHE = "taylor-usa-2026-v2";
+const CACHE = "taylor-usa-2026-v3";
 const SHELL = [
   "./",
   "index.html",
@@ -33,7 +33,10 @@ self.addEventListener("fetch", (event) => {
   const req = event.request;
   if (req.method !== "GET") return;
   event.respondWith(
-    fetch(req)
+    // cache: "no-store" bypasses the browser's own HTTP cache too, not just
+    // this service worker's Cache Storage — otherwise a fresh deploy can
+    // still be masked by an ordinary disk-cached response.
+    fetch(req.url, { cache: "no-store" })
       .then((res) => {
         if (res && res.status === 200) {
           const copy = res.clone();
