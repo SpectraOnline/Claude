@@ -4,21 +4,48 @@ Living requirements doc for this app. Update this file whenever a new requiremen
 is agreed, instead of relying on the original one-off Lovable build prompt (which
 is not tracked here and will not reflect future changes).
 
-Private, personal-use trip dashboard for Taylor's USA trip, 6–24 August 2026:
-work deployment in Miami, then a personal leg through Austin and Houston, back
-through Miami. No public product framing — built to be actually checked on a
-phone while travelling, with patchy connectivity.
+Private, personal-use trip dashboard for Taylor's USA trip, 6–24 August 2026: a
+stay in Miami, then a personal leg through Austin and Houston, back through
+Miami. No public product framing — built to be actually checked on a phone
+while travelling, with patchy connectivity. Reads end-to-end as a standard
+personal travel companion app — see "Neutral Language" below for a hard rule
+about what must never appear in it.
 
 ---
 
+## Neutral Language (mandatory, check every change against this)
+
+This app must never indicate that Taylor is travelling for military/defence
+business. Concretely:
+
+- No "Air Force," "military," "deployment," "defence/defense," or "shift" (in
+  a work-roster sense) anywhere — not in rendered text, not in `js/data.js`
+  content, not in code comments, not in this file.
+- Leg 1 is "Miami Stay," not "Miami (Work Deployment)." Its daily-commitments
+  section is "Daily Schedule," and individual entries are "Commitment," not
+  "Shift."
+- There is no packing category naming or implying a uniformed job. If a
+  future edit needs to reintroduce work-related packing items, keep the
+  category and item names generic (e.g. "Work Gear" / "Required items"), not
+  ones that reveal a specific occupation.
+- Before shipping any change that touches leg 1 or its schedule, grep the
+  whole repo (not just `js/data.js`) for `(?i)air force|military|deployment|
+  defence|defense|shift` and confirm zero matches outside historical
+  discussion in this Change Log.
+
 ## Tech & Hosting
 
-- Static HTML/CSS/JS, no build step, no framework, no backend.
+- Static HTML/CSS/JS, no build step, no framework, no backend/database.
 - Files: `index.html`, `css/style.css`, `js/data.js` (content), `js/app.js`
-  (rendering/routing/storage), `sw.js` (offline app-shell cache), `manifest.webmanifest`.
+  (rendering/routing/storage), `sw.js` (offline app-shell cache),
+  `manifest.webmanifest`, `docs/*.pdf` (bundled booking confirmations).
 - Hosted on Netlify, auto-deploying from branch `claude/app-build-markdown-kbijun`
   on every push. Build command: none. Publish directory: repo root.
 - No password gate — access is via the unlisted deploy URL only.
+- The only outbound network calls the app ever makes are to Open-Meteo (live
+  weather, keyless/CORS-friendly) and Google Maps (opening directions in a
+  new tab). Both fail quietly to a static fallback if unreachable — the app
+  is fully usable offline otherwise.
 
 ## Design System
 
@@ -27,40 +54,129 @@ phone while travelling, with patchy connectivity.
   - Primary: `#829b86`
   - Secondary: `#a09edd`
   - Accent: `#625ee3`
-- Single-screen dashboard-style home, mobile-first, no separate landing page.
+- Mobile-first, native-app feel: fixed bottom tab bar for primary navigation
+  (Home, Packing, Bucket List, Gallery, More), not a website-style top nav.
+  Touch targets sized to the ~44px minimum guideline throughout (checklist
+  rows, calculator buttons, tab bar items).
 - Light/dark aware (respects `prefers-color-scheme`). Tinted card/badge
-  backgrounds (Mum's note, flag boxes, placeholder badges, directions pills,
-  etc.) are built with `color-mix(..., var(--tint))`, where `--tint` is white
-  in light mode and a dark neutral in dark mode — never hardcode `white` as
-  the mix target, or text becomes unreadable in dark mode (this happened
-  once already).
+  backgrounds (flag boxes, placeholder badges, directions pills, etc.) are
+  built with `color-mix(..., var(--tint))`, where `--tint` is white in light
+  mode and a dark neutral in dark mode — never hardcode `white` as the mix
+  target, or text becomes unreadable in dark mode (this happened once
+  already).
 
 ## Data & Access Rules (non-negotiable)
 
-- Storage: browser `localStorage` only. Single device/browser, no sync, no account.
-  Storage keys (`taylorUsa2026.packing`, `taylorUsa2026.bucket`) must stay stable
-  across future edits — renaming/removing them wipes Taylor's saved progress.
-- Redeploying the app (new HTML/CSS/JS) never touches `localStorage` — it's scoped
-  to the browser + site origin, not to the deployed files.
-- Never store passport numbers, ID numbers, or unmasked confirmation/card numbers.
-  Where real data isn't available, show a visibly labelled "Details to follow"
-  placeholder — never invented/dummy data that resembles a real value.
-- No live external links to Google Docs or other source documents — all itinerary
-  content is embedded directly in `js/data.js`.
+- Storage: browser `localStorage` (small state) + `IndexedDB` (photos,
+  documents) only. Single device/browser, no sync, no account, no server.
+- Storage keys/DB names (`taylorUsa2026.*`, `taylorUsa2026Gallery`,
+  `taylorUsa2026Docs`) must stay stable across future edits — renaming or
+  removing them wipes Taylor's saved progress/photos/documents. This
+  intentionally did **not** change during the v1.1 data-model refactor (see
+  below) even though the content structure did.
+- Redeploying the app (new HTML/CSS/JS) never touches stored data — it's
+  scoped to the browser + site origin, not to the deployed files.
+- Never store passport numbers, military ID, boarding passes, or other
+  sensitive documents/numbers anywhere in the app. Where real data isn't
+  available, show a visibly labelled "Details to follow" placeholder — never
+  invented/dummy data that resembles a real value.
+- No live external links to Google Docs or other source documents — all
+  itinerary content is embedded directly in `js/data.js`.
+
+## Data Model (generic/multi-trip-ready)
+
+As of v1.1, `js/data.js` nests everything for one trip under `TRIPS[<id>]`
+instead of flat globals, so a future second trip is "add another entry to
+`TRIPS`," not a rendering-code rewrite:
+
+```js
+const CURRENT_TRIP_ID = "usa-2026";
+const TRIPS = {
+  "usa-2026": {
+    meta: { id, name, start, end, base, homeTimeZone: { zone, label } },
+    cities: { "<leg.location>": { label, zone, lat, lon, salesTaxPct, fallbackWeather } },
+    legs: [ ... ],
+    packingList: [ ... ],
+    usefulInfo: [ ... ],
+    bucketList: [ ... ],
+    flights: { ... },
+    flightFieldDefs: [ ... ],
+  },
+};
+```
+
+`js/app.js` never references `TRIPS` directly — it reads the compatibility
+consts at the bottom of `data.js` (`TRIP`, `CITIES`, `LEGS`, `PACKING_LIST`,
+`USEFUL_INFO`, `BUCKET_LIST`, `FLIGHTS`, `FLIGHT_FIELD_DEFS`), which are just
+`TRIPS[CURRENT_TRIP_ID].<field>` unpacked. This keeps the rendering code
+unchanged while the content became trip-scoped. **Storage key strings in
+`js/app.js` (`STORAGE_KEYS`) were deliberately left as their original
+literal values**, not derived from the trip id — deriving them would have
+been "more correct" architecturally but would orphan anything already saved
+in a returning visitor's browser. If a second trip is ever added, decide
+then whether storage needs per-trip namespacing (it will, if both trips
+should keep independent packing/bucket state).
+
+`CITIES` (keyed by the same string each leg uses as `location`) is the
+single source of truth for a place's time zone, coordinates, default sales
+tax rate, and fallback weather text — used by the dashboard widgets so
+Miami's two legs don't duplicate this data.
 
 ## App Structure
 
 ### Home / Dashboard
-- Trip name, dates, base city.
-- Personal note card from Mum (see "Personal Touches" below) — sits directly
-  under the title, before the trip-status banner and leg list.
-- Status banner: live countdown / "on the trip" state computed from today's date.
-- Leg cards for all four legs, current/next leg visually highlighted based on
-  today's date vs. each leg's date range.
-- Quick nav into Packing List, Useful Information, Texas Bucket List, Flights.
+
+Quick-glance priority order, top to bottom, all before the leg list (mobile
+UX goal: everything below reachable with minimal scrolling):
+
+1. **Current City** — the current leg's city if today falls within one,
+   otherwise the next upcoming leg's city.
+2. **Today's Schedule** — a plain-language one-liner: a dailySchedule
+   commitment today, an event happening today, check-in/check-out day, a
+   free day, or (pre-trip/post-trip) the countdown text.
+3. **Live Time Zones** — New Zealand, Miami (ET), Texas (CT), ticking every
+   30s. Uses `Intl`/`toLocaleTimeString` with real IANA zone names
+   (`Pacific/Auckland`, `America/New_York`, `America/Chicago`) — **never**
+   hardcode a UTC offset, since that breaks across daylight saving
+   transitions. A small `+1d`/`-1d` badge shows when a zone's calendar date
+   differs from home.
+4. **Tip & Sales Tax Calculator** — one card, two independent calculators.
+   Tip: bill amount + 15/18/20/25% quick buttons → tip amount + total. Sales
+   tax: purchase amount + an editable % field (defaults to the current
+   city's `salesTaxPct` from `CITIES`, e.g. 7% Miami vs 8.25% Texas) → tax
+   amount + total. Pure client-side, no persistence (deliberately — it's a
+   quick lookup tool, not trip data), no calls to `render()` on input so it
+   never disrupts the live clock or triggers a full re-render.
+5. **Weather** — live current temperature + condition for the current
+   city via Open-Meteo (free, keyless, CORS-enabled — no API key/backend
+   needed), falling back silently to the static seasonal description
+   (`CITIES[...].fallbackWeather`) if offline or the request fails/times
+   out (6s `AbortController` timeout).
+6. **Next Accommodation** — current/next leg's property name + check-in.
+7. **Next Travel Event** — the next leg transition ("Move to {city}," next
+   start date), or a flight-home fallback once on the last leg.
+
+Then: a compact "Trip Legs" grid (all four legs, current/next highlighted)
+as a full-itinerary overview. There is no separate "Trip Info" quick-link
+grid anymore — Packing/Bucket List/Gallery live in the bottom tab bar, and
+Useful Information/Flights live in the "More" drawer, so a duplicate set of
+links on Home would just add scroll length without adding reach.
+
+There is no personal note on the dashboard (see Change Log — removed in
+v1.1 at the user's request, since Taylor had already read it).
+
+### Navigation
+
+- **Bottom tab bar** (fixed, thumb-reachable): Home, Packing, Bucket List,
+  Gallery, More. "More" opens the same slide-in drawer as before, now
+  scoped to Trip Legs (leg 1–4) and the remaining Trip Info pages (Useful
+  Information, Flights) — everything reachable in the tab bar isn't
+  duplicated in the drawer.
+- Top header is now title-only (no buttons) — it's a status bar, not a nav
+  surface, since navigation lives in the bottom tab bar.
 
 ### Leg Pages (4)
-1. **Miami — Work Deployment**, 6–17 Aug 2026 (Miami Shores Villa, Airbnb)
+1. **Miami Stay**, 6–17 Aug 2026 (Miami Shores Villa, Airbnb)
 2. **Austin, Texas**, 19–22 Aug 2026 (Kasa Downtown Austin)
 3. **Houston, Texas**, 22–23 Aug 2026 (Club Quarters Hotel Downtown) — Astros
    vs Athletics, Sat 22 Aug 6:10 PM CT, Daikin Park (confirmed by Taylor)
@@ -68,36 +184,42 @@ phone while travelling, with patchy connectivity.
 
 Each leg page includes (where applicable to that property): check-in/out times,
 minimum age, room type, cost, cancellation policy, confirmation number (or
-placeholder), address (or placeholder), "About this space" description,
-amenities, nearby attractions/dining/shopping with drive times, house rules,
-work schedule (Miami leg 1 only), event flag (Austin — PBR Gambler Days /
-Moody Center), and a local contact card (Austin — Deleigh Hermes).
+placeholder), address (or placeholder), a "Booking Document" PDF slot, "About
+this space" description, amenities, nearby attractions/dining/shopping with
+drive times, house rules, a "Daily Schedule" (leg 1 only — see Neutral
+Language above for exactly what this must and must not say), an event flag
+(Austin — PBR Gambler Days / Moody Center; Houston — Astros vs Athletics /
+Daikin Park), and a local contact card (Austin — Deleigh Hermes).
 
 ### Supporting Pages
-- **Packing List** — interactive checklist grouped by category exactly as
-  specified in the source itinerary; per-item checked state persisted in
-  localStorage; progress counter ("X of Y packed"). Every category card
-  (including "Shopping") has its own "Add an item…" field at the bottom, so
-  Taylor's own additions land in the right section rather than a separate
-  pile — stored with a category tag (`taylorUsa2026.packingCustom`), with a
-  delete (×) button, counted into the same progress total. A catch-all
-  "Other" card only appears if an item's category doesn't match any current
-  category (safety net, not expected in normal use).
+- **Packing List** — interactive checklist grouped by category; per-item
+  checked state persisted in localStorage; progress counter ("X of Y
+  packed"). Every category card (including "Shopping") has its own "Add an
+  item…" field at the bottom, so Taylor's own additions land in the right
+  section rather than a separate pile — stored with a category tag
+  (`taylorUsa2026.packingCustom`), with a delete (×) button, counted into
+  the same progress total. A catch-all "Other" card only appears if an
+  item's category doesn't match any current category (safety net, not
+  expected in normal use).
 - **Useful Information** — emergency, currency, time zones, power, transport,
-  weather, tipping, useful apps.
-- **Trip Bucket List** (was "Texas Bucket List") — grouped by location
-  (Austin, Houston, Key West), same checkbox + per-section "Add
-  something…" pattern as the Packing List. Austin carries the original
-  confirmed content; Houston has the confirmed Astros game; Key West starts
-  empty rather than inventing things to do there. Custom items stored in
-  `taylorUsa2026.bucketCustom` with a `location` tag.
+  weather, tipping, useful apps, plus a general editable note field. Items
+  naming a specific app/service are tap-to-open links: Emergency Number
+  (`tel:911`), Uber, Google Maps, Apple Maps, Airbnb, Expedia, Weather App.
+  "Airline App" stays plain text — the airline wasn't linked to avoid
+  guessing which app before it was confirmed.
+- **Trip Bucket List** — grouped by location (Austin, Houston, Key West),
+  same checkbox + per-section "Add something…" pattern as the Packing List.
+  Austin carries the original confirmed content; Houston has the confirmed
+  Astros game; Key West starts empty rather than inventing things to do
+  there. Custom items stored in `taylorUsa2026.bucketCustom` with a
+  `location` tag. Items tied to a real, named place get a map-pin icon
+  (Google Maps directions) without toggling the checkbox.
 - **Flights** — confirmed values (currently: Airline "United", Booking
   Reference "LDY8D7") show as plain rows; every still-unconfirmed field
   (flight numbers, departure/arrival airport, departure/arrival times,
   boarding passes, seat numbers) gets its own placeholder + "+ Add a note"
-  so Taylor can fill each one in individually as he gets it, rather than one
-  shared free-text box. A general "Anything else" note field covers
-  layovers/gate changes/anything that doesn't fit the structured fields.
+  so Taylor can fill each one in individually as he gets it. A "Flight
+  Documents" PDF slot and a general "Anything else" note field round it out.
   Never populate a structured field with an invented value — only real
   confirmed data goes in `FLIGHTS` (`js/data.js`).
 - **Gallery** — on-device photo gallery. "+ Add Photos" opens the standard
@@ -106,30 +228,18 @@ Moody Center), and a local contact card (Austin — Deleigh Hermes).
   Photos are resized/re-encoded client-side (max 1600px, JPEG ~0.82 quality)
   before being stored as Blobs in IndexedDB (`taylorUsa2026Gallery`) —
   localStorage's ~5-10MB limit can't hold photos, IndexedDB can. Tap a
-  thumbnail for a full-screen lightbox with delete. No upload anywhere —
-  same single-device-only model as everything else in the app.
+  thumbnail for a full-screen lightbox with delete.
 
 ## Known Data Gaps (do not fill with invented data)
 
 1. Miami villa: confirmation number, exact address — not available.
 2. Houston and Miami-return stays: confirmation numbers masked in source —
-   placeholder shown, note to keep the Expedia confirmation accessible separately.
-3. Flight itinerary — not yet reviewed, structure only.
-4. Miami leg 1 work schedule beyond 7–9 August — structure confirmed, exact
-   dates pending confirmation against the overview document.
-
-## Personal Touches
-
-- **Home page note from Mum** — distinct card (secondary-colour tint, left
-  accent border) directly under the trip title, before the status banner and
-  leg list, so it reads as a personal message rather than itinerary data. Line
-  breaks in the message are preserved exactly. Content lives in `js/data.js`
-  as `MUM_NOTE`.
-- **Site-wide footer** — small, low-contrast footer on every page:
-  `Made with love from Mum 🫶🏻 | Version {APP_VERSION} • USA Adventure 2026`.
-  Rendered once in `app.js` (`buildFooter()`) alongside every route, not
-  duplicated per page. Bump `APP_VERSION` in `js/data.js` when it's worth
-  surfacing a version bump to Taylor.
+   placeholder shown, note to keep the Expedia confirmation accessible
+   separately. Real Expedia PDFs are bundled (see Booking Documents).
+3. Flight itinerary — Airline and Booking Reference confirmed; flight
+   numbers, airports, times, boarding passes, seat numbers still pending.
+4. Miami leg 1 daily schedule beyond 7–9 August — structure confirmed,
+   exact dates pending confirmation.
 
 ## Booking Documents (PDF)
 
@@ -141,10 +251,9 @@ Moody Center), and a local contact card (Austin — Deleigh Hermes).
 - Austin, Houston, and the Miami-return leg ship with their real Expedia
   booking-confirmation PDFs bundled as static files in `docs/` (linked via
   `property.confirmationPdf` in `js/data.js`) and precached by the service
-  worker, so they're available offline from the first load — not just after
-  Taylor views them once online. The Miami villa (leg 1, Airbnb) and
-  Flights have no bundled default, only the upload option, since no PDF
-  exists for those yet.
+  worker, so they're available offline from the first load. The Miami villa
+  (leg 1, Airbnb) and Flights have no bundled default, only the upload
+  option, since no PDF exists for those yet.
 - Uploading your own PDF to a slot that has a bundled default replaces it
   in the UI; removing your upload reverts to showing the bundled default
   again (it's never deleted, just superseded).
@@ -159,16 +268,6 @@ Moody Center), and a local contact card (Austin — Deleigh Hermes).
   Persisted in localStorage (`taylorUsa2026.notes`), keyed per field so it's
   independent of the reference data in `js/data.js`.
 
-## Useful Information Links
-
-- In the Useful Information page, items that name a specific app or service are
-  tap-to-open links: Emergency Number (`tel:911`), and in Transport / Useful
-  Apps — Uber, Google Maps, Apple Maps, Airbnb, Expedia, Weather App. These
-  open the service's app via universal link where the OS supports it, falling
-  back to the website.
-- "Airline App" is deliberately left as plain text — the airline isn't known
-  yet (flights unconfirmed), so it isn't linked rather than guessing one.
-
 ## Google Maps Directions
 
 - Every "N min away" attraction/dining/shopping entry (Miami leg) links to
@@ -177,16 +276,13 @@ Moody Center), and a local contact card (Austin — Deleigh Hermes).
   it means the links route correctly from wherever Taylor actually is at the
   time, and will look like a long/international route if opened from outside
   the US (e.g. while testing). Do not hardcode an origin.
-- Property addresses with a confirmed exact address (Austin, Houston, Miami
-  return) get a "Get directions" link under the address.
-- Where only an area is known (Miami villa, address still outstanding), show
-  a "View area on map" link to the named area instead of guessing an address.
-- Event flags (Austin — PBR Gambler Days / Moody Center; Houston — Astros vs
-  Athletics / Daikin Park) each have their own directions link, driven by an
+- Property addresses with a confirmed exact address get a "Get directions"
+  link under the address. Where only an area is known (Miami villa), show a
+  "View area on map" link to the named area instead of guessing an address.
+- Event flags each have their own directions link, driven by an
   `eventFlag.venue` field — not hardcoded per leg.
-- Texas Bucket List items tied to a real, named place (Boot Barn, Sheplers,
-  Downtown Austin, South Congress, Texas State Capitol, Moody Center) get a
-  small map-pin icon opening directions, without toggling the item's checkbox.
+- Bucket List items tied to a real, named place get the same map-pin
+  treatment.
 
 ## Build Priority (original, retained for reference)
 
@@ -201,47 +297,57 @@ Moody Center), and a local contact card (Austin — Deleigh Hermes).
 ## Change Log
 
 - **v1.0** — Initial build: home dashboard, four leg pages, packing list,
-  useful information, Texas bucket list, flights empty state.
+  useful information, bucket list, flights empty state.
 - Added Google Maps directions links (attractions/dining/shopping, property
   addresses, event flag, bucket-list landmarks).
-- Added personal note from Mum on the home page, and a site-wide footer.
+- Added a personal note from Mum on the home page, and a site-wide footer.
 - Added SPEC.md as the living requirements doc.
-- Made app/service names in Useful Information tap-to-open links (Emergency
-  911, Uber, Google Maps, Apple Maps, Airbnb, Expedia, Weather App); left
-  "Airline App" plain since the airline isn't confirmed yet.
-- Added a "Your Additions" section to the Packing List so Taylor can add his
-  own items (with delete), and editable notes on every "details to follow"
-  placeholder plus the Flights page.
+- Made app/service names in Useful Information tap-to-open links.
+- Added a packing "add your own item" capability, and editable notes on
+  every "details to follow" placeholder plus the Flights page.
 - Fixed the service worker: it was cache-first, so updates only appeared on
-  a *second* reload after a deploy. Switched to network-first (fetch the
-  latest when online, fall back to cache only when offline) so updates show
-  immediately, while offline use while travelling still works.
+  a *second* reload after a deploy. Switched to network-first.
 - Fixed dark mode: several tinted backgrounds were hardcoded to mix toward
-  white, making text on them (notably Mum's note) unreadable in dark mode.
-  Introduced a `--tint` variable so tints mix toward the right neutral for
-  the active theme.
+  white, making text on them unreadable in dark mode. Introduced a `--tint`
+  variable.
 - Moved packing "add your own item" from one section at the end to a small
-  form at the bottom of every category card, so additions land where they
-  belong (custom items now carry a `category` field).
-- Added Houston event flag (Astros vs Athletics, Daikin Park) confirmed by
-  Taylor; generalized the event-flag directions link (was hardcoded to
-  Austin's "Moody Center") to use an `eventFlag.venue` field so any leg can
-  carry one.
-- Restructured Texas Bucket List into the location-grouped Trip Bucket List
-  (Austin/Houston/Key West) with per-section add-item, reusing the same
-  checklist/add-item building blocks as the Packing List (extracted into
-  shared `renderChecklistItem` / `renderAddItemForm` functions).
-- Added a Gallery page: on-device photo storage via IndexedDB (camera or
-  library picker, client-side compression, lightbox view with delete).
-  Fixed a bug found in testing where the lightbox (appended to `<body>`,
-  outside the normal render tree) stayed open over whatever page you
-  navigated to next — now explicitly closed on every route change.
+  form at the bottom of every category card.
+- Added Houston event flag (Astros vs Athletics, Daikin Park); generalized
+  the event-flag directions link to use an `eventFlag.venue` field.
+- Restructured the Texas-only bucket list into the location-grouped Trip
+  Bucket List (Austin/Houston/Key West) with per-section add-item.
+- Added a Gallery page: on-device photo storage via IndexedDB. Fixed a bug
+  where the full-screen lightbox stayed open across page navigation.
 - Added Taylor's confirmed flight details (Airline: United, Booking
-  Reference: LDY8D7) and rebuilt Flights from a flat empty-state list into
-  per-field placeholders + notes, so he can fill in flight numbers/times/
-  seats himself as he gets them. Also added a general note field to Useful
-  Information.
-- Added PDF booking-document upload (IndexedDB, `renderDocSlot`) to every
-  leg's accommodation card and to Flights; bundled Taylor's real Expedia
-  confirmation PDFs for Austin, Houston, and the Miami-return leg as static
-  defaults, precached for offline use.
+  Reference: LDY8D7) and rebuilt Flights with per-field placeholders + notes.
+- Added PDF booking-document upload to every leg's accommodation card and
+  to Flights; bundled Taylor's real Expedia confirmation PDFs for Austin,
+  Houston, and the Miami-return leg as static defaults.
+- **v1.1** — Major update, five parts:
+  1. **Removed all military/defence references** (mandatory, done first):
+     Leg 1 renamed "Miami (Work Deployment)" → "Miami Stay"; "Work Schedule"
+     → "Daily Schedule"; "Shift" → "Commitment"; deleted the "Air Force"
+     packing category and its items (Uniforms, Boots, Required work gear,
+     ID/Military identification) entirely. Audited the whole repo (not just
+     `js/data.js`) for these terms — see "Neutral Language" above for the
+     standing rule this leaves in place.
+  2. **Dashboard rebuilt** to the quick-glance priority order documented
+     above: Current City, Today's Schedule, live DST-aware Time Zones, Tip
+     & Sales Tax Calculator, Weather (live, Open-Meteo), Next Accommodation,
+     Next Travel Event.
+  3. **Mobile UX**: replaced the top hamburger menu with a fixed bottom tab
+     bar (Home/Packing/Bucket List/Gallery/More) for thumb-reachable nav;
+     the drawer ("More") now only holds Trip Legs and the remaining Trip
+     Info pages, since the rest live in the tab bar; bumped touch target
+     sizes (checklist rows, calculator buttons) toward the ~44px guideline.
+  4. **Removed the "From Mum" note** from the dashboard — Taylor had
+     already read it, so it's fully deleted (data, rendering, and CSS), not
+     just hidden. Recoverable from git history if ever wanted back. The
+     small site-wide footer signature was left as-is since it wasn't what
+     was asked to be removed.
+  5. **Refactored `js/data.js` into a generic, multi-trip-ready structure**
+     (`TRIPS[<id>]`, see "Data Model" above) — this version still only
+     shows Taylor's USA trip, but adding a second trip later no longer
+     means restructuring `js/app.js`. Storage key strings were
+     deliberately left unchanged to avoid orphaning Taylor's already-saved
+     packing/bucket/notes/photos/documents.

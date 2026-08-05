@@ -315,6 +315,46 @@ function formatCountdown() {
   return days === 0 ? "Final day — flies home today" : `On the trip · ${days} day${days === 1 ? "" : "s"} to go`;
 }
 
+function getCurrentOrNextLeg() {
+  return LEGS.find((l) => l.id === nextOrCurrentLegId());
+}
+
+function cityInfo(location) {
+  return CITIES[location] || null;
+}
+
+function isoDateStr(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+function todaysScheduleText() {
+  const now = today();
+  const current = LEGS.find((l) => legStatus(l) === "current");
+  if (!current) return formatCountdown();
+
+  const city = cityInfo(current.location);
+  const cityLabel = city ? city.label : current.location;
+
+  if (current.dailySchedule) {
+    const match = current.dailySchedule.confirmed.find((c) => +parseDate(c.date) === +now);
+    if (match) return `Commitment today in ${cityLabel}.`;
+  }
+  if (current.eventFlag && current.eventFlag.isoDates && current.eventFlag.isoDates.includes(isoDateStr(now))) {
+    const ef = current.eventFlag;
+    return `Today: ${ef.name}${ef.venue ? ` at ${ef.venue}` : ""}.`;
+  }
+  if (+now === +parseDate(current.start)) {
+    return `Check-in day — ${current.property.name}${current.property.checkIn ? ` (${current.property.checkIn})` : ""}.`;
+  }
+  if (+now === +parseDate(current.end)) {
+    return "Check-out day — heading to the next stop.";
+  }
+  return `Free day in ${cityLabel}.`;
+}
+
 // ---------- Small render helpers ----------
 
 function el(tag, attrs = {}, children = []) {
@@ -446,14 +486,257 @@ function pageHeader(title, subtitle) {
   return el("div", { class: "page-header" }, children);
 }
 
-// ---------- Home ----------
+// ---------- Home: dashboard widgets ----------
 
-function renderMumNote() {
-  return el("div", { class: "note-card" }, [
-    el("p", { class: "note-card-label" }, MUM_NOTE.from),
-    el("p", { class: "note-card-body" }, MUM_NOTE.body),
+function renderStatTile(label, value, sub, small) {
+  return el("div", { class: "stat-tile" }, [
+    el("div", { class: "stat-tile-label" }, label),
+    el("div", { class: `stat-tile-value${small ? " stat-tile-value--sm" : ""}` }, value),
+    sub ? el("div", { class: "stat-tile-sub" }, sub) : null,
   ]);
 }
+
+function renderCurrentCityTile() {
+  const leg = getCurrentOrNextLeg();
+  const status = legStatus(leg);
+  const city = cityInfo(leg.location);
+  const label = city ? city.label : leg.location;
+  const sub = status === "current" ? "You're here now" : status === "done" ? "Trip complete" : "Next stop";
+  return renderStatTile("Current City", label, sub);
+}
+
+// Live, DST-aware clocks: uses named IANA zones (not fixed UTC offsets) via
+// Intl, so daylight saving is handled automatically by the browser.
+const TZ_LIST = [
+  { label: TRIP.homeTimeZone.label, zone: TRIP.homeTimeZone.zone },
+  { label: "Miami", zone: CITIES["Miami, Florida"].zone },
+  { label: "Texas", zone: CITIES["Austin, Texas"].zone },
+];
+
+let clockInterval = null;
+function stopClock() {
+  if (clockInterval) {
+    clearInterval(clockInterval);
+    clockInterval = null;
+  }
+}
+
+function renderTimeZonesCard() {
+  const rows = TZ_LIST.map((tz) => {
+    const timeEl = el("span", { class: "tz-time" }, "--:--");
+    const dayBadge = el("span", { class: "tz-day-badge" }, "");
+    const row = el("div", { class: "tz-row" }, [
+      el("span", { class: "tz-label" }, tz.label),
+      el("span", { class: "tz-time-wrap" }, [dayBadge, timeEl]),
+    ]);
+    row._zone = tz.zone;
+    row._timeEl = timeEl;
+    row._dayBadge = dayBadge;
+    return row;
+  });
+
+  function tick() {
+    const now = new Date();
+    const homeDay = now.toLocaleDateString("en-CA", { timeZone: TRIP.homeTimeZone.zone });
+    rows.forEach((row) => {
+      row._timeEl.textContent = now.toLocaleTimeString("en-NZ", {
+        timeZone: row._zone,
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+      const zoneDay = now.toLocaleDateString("en-CA", { timeZone: row._zone });
+      row._dayBadge.textContent = zoneDay === homeDay ? "" : zoneDay > homeDay ? "+1d" : "-1d";
+    });
+  }
+
+  tick();
+  stopClock();
+  clockInterval = setInterval(tick, 30000);
+
+  return card([sectionHeadingInline("Live Time Zones"), el("div", { class: "tz-list" }, rows)]);
+}
+
+function renderTipTaxCard() {
+  const leg = getCurrentOrNextLeg();
+  const city = cityInfo(leg.location);
+  const defaultTaxPct = city ? city.salesTaxPct : 8;
+
+  const tipAmountInput = el("input", {
+    type: "number",
+    inputmode: "decimal",
+    class: "calc-input",
+    placeholder: "Bill amount ($)",
+    min: "0",
+    step: "0.01",
+  });
+  const tipButtons = [15, 18, 20, 25].map((pct) =>
+    el("button", { type: "button", class: "calc-pct-btn", "data-pct": String(pct) }, `${pct}%`)
+  );
+  const tipResult = el("div", { class: "calc-result" }, "");
+  let selectedTipPct = 20;
+
+  function updateTip() {
+    tipButtons.forEach((b) =>
+      b.classList.toggle("calc-pct-btn--active", Number(b.dataset.pct) === selectedTipPct)
+    );
+    const amt = parseFloat(tipAmountInput.value);
+    if (!amt || amt <= 0) {
+      tipResult.textContent = "";
+      return;
+    }
+    const tip = amt * (selectedTipPct / 100);
+    tipResult.textContent = `Tip $${tip.toFixed(2)} · Total $${(amt + tip).toFixed(2)}`;
+  }
+  tipButtons.forEach((b) =>
+    b.addEventListener("click", () => {
+      selectedTipPct = Number(b.dataset.pct);
+      updateTip();
+    })
+  );
+  tipAmountInput.addEventListener("input", updateTip);
+  updateTip();
+
+  const taxAmountInput = el("input", {
+    type: "number",
+    inputmode: "decimal",
+    class: "calc-input",
+    placeholder: "Purchase amount ($)",
+    min: "0",
+    step: "0.01",
+  });
+  const taxPctInput = el("input", {
+    type: "number",
+    inputmode: "decimal",
+    class: "calc-input calc-input--pct",
+    value: String(defaultTaxPct),
+    min: "0",
+    step: "0.01",
+  });
+  const taxResult = el("div", { class: "calc-result" }, "");
+
+  function updateTax() {
+    const amt = parseFloat(taxAmountInput.value);
+    const pct = parseFloat(taxPctInput.value);
+    if (!amt || amt <= 0 || isNaN(pct)) {
+      taxResult.textContent = "";
+      return;
+    }
+    const tax = amt * (pct / 100);
+    taxResult.textContent = `Tax $${tax.toFixed(2)} · Total $${(amt + tax).toFixed(2)}`;
+  }
+  taxAmountInput.addEventListener("input", updateTax);
+  taxPctInput.addEventListener("input", updateTax);
+  updateTax();
+
+  return card([
+    sectionHeadingInline("Tip & Sales Tax Calculator"),
+    el("div", { class: "calc-section" }, [
+      el("p", { class: "calc-subheading" }, "Tip"),
+      tipAmountInput,
+      el("div", { class: "calc-pct-row" }, tipButtons),
+      tipResult,
+    ]),
+    el("div", { class: "calc-section" }, [
+      el("p", { class: "calc-subheading" }, "Sales tax"),
+      el("div", { class: "calc-tax-row" }, [taxAmountInput, taxPctInput]),
+      taxResult,
+    ]),
+  ]);
+}
+
+const WMO_WEATHER_DESCRIPTIONS = {
+  0: "Clear sky",
+  1: "Mainly clear",
+  2: "Partly cloudy",
+  3: "Overcast",
+  45: "Fog",
+  48: "Fog",
+  51: "Light drizzle",
+  53: "Drizzle",
+  55: "Heavy drizzle",
+  61: "Light rain",
+  63: "Rain",
+  65: "Heavy rain",
+  71: "Light snow",
+  73: "Snow",
+  75: "Heavy snow",
+  80: "Rain showers",
+  81: "Rain showers",
+  82: "Violent showers",
+  95: "Thunderstorm",
+  96: "Thunderstorm",
+  99: "Thunderstorm",
+};
+
+// Free, keyless, CORS-enabled - no backend/API key needed. Fails quietly to
+// the static seasonal fallback text if offline or blocked.
+async function fetchLiveWeather(lat, lon) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 6000);
+  try {
+    const res = await fetch(
+      `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code&temperature_unit=fahrenheit&timezone=auto`,
+      { signal: controller.signal }
+    );
+    clearTimeout(timer);
+    if (!res.ok) return null;
+    const data = await res.json();
+    return {
+      temp: Math.round(data.current.temperature_2m),
+      desc: WMO_WEATHER_DESCRIPTIONS[data.current.weather_code] || "",
+    };
+  } catch (e) {
+    clearTimeout(timer);
+    return null;
+  }
+}
+
+function renderWeatherTile() {
+  const leg = getCurrentOrNextLeg();
+  const city = cityInfo(leg.location);
+  const valueEl = el("div", { class: "stat-tile-value stat-tile-value--sm" }, city ? city.fallbackWeather : "—");
+  const tile = el("div", { class: "stat-tile" }, [
+    el("div", { class: "stat-tile-label" }, "Weather"),
+    valueEl,
+    el("div", { class: "stat-tile-sub" }, city ? city.label : ""),
+  ]);
+
+  if (city) {
+    fetchLiveWeather(city.lat, city.lon).then((w) => {
+      if (w) valueEl.textContent = `${w.temp}°F${w.desc ? `, ${w.desc}` : ""}`;
+    });
+  }
+
+  return tile;
+}
+
+function renderNextAccommodationTile() {
+  const leg = getCurrentOrNextLeg();
+  return renderStatTile(
+    "Next Accommodation",
+    leg.property.name,
+    leg.property.checkIn ? `Check-in ${leg.property.checkIn}` : "",
+    true
+  );
+}
+
+function renderNextTravelEventTile() {
+  const now = today();
+  const upcoming = LEGS.filter((l) => parseDate(l.start) > now).sort((a, b) => parseDate(a.start) - parseDate(b.start));
+  if (upcoming.length) {
+    const next = upcoming[0];
+    const city = cityInfo(next.location);
+    return renderStatTile(
+      "Next Travel Event",
+      `Move to ${city ? city.label : next.location}`,
+      formatShortDate(next.start),
+      true
+    );
+  }
+  return renderStatTile("Next Travel Event", "Flight home", "See Flights for details", true);
+}
+
+// ---------- Home ----------
 
 function renderHome() {
   const wrap = el("div", { class: "view" });
@@ -461,10 +744,25 @@ function renderHome() {
     pageHeader(TRIP.name, `${formatDateRange(TRIP.start, TRIP.end)} · Based in ${TRIP.base}`)
   );
 
-  wrap.append(renderMumNote());
-
   const status = el("div", { class: "status-banner" }, formatCountdown());
   wrap.append(status);
+
+  // Quick-glance priority order (exact): current city, today's schedule,
+  // live time zones, tip/tax calculator, weather, next accommodation, next
+  // travel event - all above the fold, before the full leg list.
+  wrap.append(renderCurrentCityTile());
+
+  wrap.append(
+    card([sectionHeadingInline("Today's Schedule"), el("p", { class: "about-text" }, todaysScheduleText())])
+  );
+
+  wrap.append(renderTimeZonesCard());
+
+  wrap.append(renderTipTaxCard());
+
+  wrap.append(renderWeatherTile());
+
+  wrap.append(el("div", { class: "stat-grid" }, [renderNextAccommodationTile(), renderNextTravelEventTile()]));
 
   wrap.append(sectionHeading("Trip Legs"));
   const grid = el("div", { class: "leg-grid" });
@@ -490,24 +788,7 @@ function renderHome() {
   });
   wrap.append(grid);
 
-  wrap.append(sectionHeading("Trip Info"));
-  const quick = el("div", { class: "quick-grid" }, [
-    quickLink("#packing", "Packing List", "Interactive checklist"),
-    quickLink("#info", "Useful Information", "Emergency, currency, tipping & more"),
-    quickLink("#bucket", "Trip Bucket List", "Things to do & see"),
-    quickLink("#flights", "Flights", "Awaiting documentation"),
-    quickLink("#gallery", "Gallery", "Photos saved on this device"),
-  ]);
-  wrap.append(quick);
-
   return wrap;
-}
-
-function quickLink(href, title, subtitle) {
-  return el("a", { href, class: "quick-card" }, [
-    el("h3", { class: "quick-card-title" }, title),
-    el("p", { class: "quick-card-sub" }, subtitle),
-  ]);
 }
 
 function formatDateRange(startStr, endStr) {
@@ -692,11 +973,11 @@ function renderLeg(leg) {
     );
   }
 
-  // Work schedule
-  if (leg.workSchedule) {
-    const ws = leg.workSchedule;
+  // Daily schedule
+  if (leg.dailySchedule) {
+    const ds = leg.dailySchedule;
     const timeline = el("ul", { class: "timeline" });
-    ws.confirmed.forEach((s) => {
+    ds.confirmed.forEach((s) => {
       timeline.append(
         el("li", { class: "timeline-item timeline-item--confirmed" }, [
           el("span", { class: "timeline-date" }, formatShortDate(s.date)),
@@ -704,7 +985,7 @@ function renderLeg(leg) {
         ])
       );
     });
-    ws.structure.forEach((s) => {
+    ds.structure.forEach((s) => {
       timeline.append(
         el("li", { class: "timeline-item timeline-item--tbc" }, [
           el("span", { class: "timeline-date" }, "TBC"),
@@ -713,7 +994,7 @@ function renderLeg(leg) {
       );
     });
     wrap.append(
-      card([sectionHeadingInline("Work Schedule"), timeline, el("p", { class: "note-text" }, ws.note)])
+      card([sectionHeadingInline("Daily Schedule"), timeline, el("p", { class: "note-text" }, ds.note)])
     );
   }
 
@@ -1179,6 +1460,7 @@ function buildFooter() {
 function render() {
   closeLightbox();
   revokeDocUrls();
+  stopClock();
   const hash = (location.hash || "#home").slice(1);
   if (hash !== "gallery") revokeGalleryUrls();
   let view;
@@ -1198,11 +1480,17 @@ function render() {
   updateActiveLink(hash);
 }
 
+const PRIMARY_TAB_ROUTES = ["home", "packing", "bucket", "gallery"];
+
 function updateActiveLink(hash) {
   document.querySelectorAll(".drawer-link").forEach((link) => {
     const isActive = link.getAttribute("href") === `#${hash}`;
     link.classList.toggle("drawer-link--active", isActive);
   });
+  document.querySelectorAll(".tab-link[data-route]").forEach((link) => {
+    link.classList.toggle("tab-link--active", link.dataset.route === hash);
+  });
+  menuBtn.classList.toggle("tab-link--active", !PRIMARY_TAB_ROUTES.includes(hash));
 }
 
 // ---------- Drawer ----------
