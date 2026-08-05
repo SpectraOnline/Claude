@@ -150,6 +150,7 @@ const LEGS = [
     eventFlag: {
       name: "PBR Gambler Days, Moody Center",
       dates: "Fri 21, Sat 22, Sun 23 August",
+      venue: "Moody Center",
     },
     localContact: {
       name: "Deleigh Hermes",
@@ -180,6 +181,11 @@ const LEGS = [
       confirmation: null,
       confirmationNote:
         "Masked in source data. Taylor should carry the full confirmation number separately (Expedia app/email).",
+    },
+    eventFlag: {
+      name: "Athletics @ Astros",
+      dates: "Saturday 22 August, 6:10 PM CT",
+      venue: "Daikin Park",
     },
   },
   {

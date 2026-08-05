@@ -62,7 +62,8 @@ phone while travelling, with patchy connectivity.
 ### Leg Pages (4)
 1. **Miami — Work Deployment**, 6–17 Aug 2026 (Miami Shores Villa, Airbnb)
 2. **Austin, Texas**, 19–22 Aug 2026 (Kasa Downtown Austin)
-3. **Houston, Texas**, 22–23 Aug 2026 (Club Quarters Hotel Downtown)
+3. **Houston, Texas**, 22–23 Aug 2026 (Club Quarters Hotel Downtown) — Astros
+   vs Athletics, Sat 22 Aug 6:10 PM CT, Daikin Park (confirmed by Taylor)
 4. **Miami — Return, Pre-Flight**, 23–24 Aug 2026 (Hampton Inn & Suites Blue Lagoon)
 
 Each leg page includes (where applicable to that property): check-in/out times,
@@ -143,8 +144,9 @@ Moody Center), and a local contact card (Austin — Deleigh Hermes).
   return) get a "Get directions" link under the address.
 - Where only an area is known (Miami villa, address still outstanding), show
   a "View area on map" link to the named area instead of guessing an address.
-- The Austin event flag (PBR Gambler Days / Moody Center) has its own
-  directions link.
+- Event flags (Austin — PBR Gambler Days / Moody Center; Houston — Astros vs
+  Athletics / Daikin Park) each have their own directions link, driven by an
+  `eventFlag.venue` field — not hardcoded per leg.
 - Texas Bucket List items tied to a real, named place (Boot Barn, Sheplers,
   Downtown Austin, South Congress, Texas State Capitol, Moody Center) get a
   small map-pin icon opening directions, without toggling the item's checkbox.
@@ -184,3 +186,7 @@ Moody Center), and a local contact card (Austin — Deleigh Hermes).
 - Moved packing "add your own item" from one section at the end to a small
   form at the bottom of every category card, so additions land where they
   belong (custom items now carry a `category` field).
+- Added Houston event flag (Astros vs Athletics, Daikin Park) confirmed by
+  Taylor; generalized the event-flag directions link (was hardcoded to
+  Austin's "Moody Center") to use an `eventFlag.venue` field so any leg can
+  carry one.

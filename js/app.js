@@ -353,19 +353,22 @@ function renderLeg(leg) {
 
   wrap.append(card(accomChildren));
 
-  // Event flag (Austin)
+  // Event flag
   if (leg.eventFlag) {
+    const ef = leg.eventFlag;
     wrap.append(
       card(
         [
           el("div", { class: "event-flag" }, [
             el("span", { class: "event-flag-icon" }, "🎟"),
             el("div", {}, [
-              el("strong", {}, leg.eventFlag.name),
-              el("p", { class: "note-text" }, leg.eventFlag.dates),
+              el("strong", {}, ef.name),
+              el("p", { class: "note-text" }, ef.dates),
             ]),
           ]),
-          directionsLink(`Moody Center, ${leg.location}`, "Get directions to Moody Center"),
+          ef.venue
+            ? directionsLink(`${ef.venue}, ${leg.location}`, `Get directions to ${ef.venue}`)
+            : null,
         ],
         "card--accent"
       )
