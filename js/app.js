@@ -137,11 +137,20 @@ function pageHeader(title, subtitle) {
 
 // ---------- Home ----------
 
+function renderMumNote() {
+  return el("div", { class: "note-card" }, [
+    el("p", { class: "note-card-label" }, MUM_NOTE.from),
+    el("p", { class: "note-card-body" }, MUM_NOTE.body),
+  ]);
+}
+
 function renderHome() {
   const wrap = el("div", { class: "view" });
   wrap.append(
     pageHeader(TRIP.name, `${formatDateRange(TRIP.start, TRIP.end)} · Based in ${TRIP.base}`)
   );
+
+  wrap.append(renderMumNote());
 
   const status = el("div", { class: "status-banner" }, formatCountdown());
   wrap.append(status);
@@ -554,6 +563,10 @@ const ROUTES = {
   flights: renderFlights,
 };
 
+function buildFooter() {
+  return el("footer", { class: "app-footer" }, FOOTER_TEXT);
+}
+
 function render() {
   const hash = (location.hash || "#home").slice(1);
   let view;
@@ -567,7 +580,7 @@ function render() {
     view = renderHome();
   }
 
-  app.replaceChildren(view);
+  app.replaceChildren(view, buildFooter());
   window.scrollTo(0, 0);
   closeDrawer();
   updateActiveLink(hash);

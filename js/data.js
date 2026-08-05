@@ -9,6 +9,23 @@ const TRIP = {
   base: "Miami",
 };
 
+const APP_VERSION = "1.0";
+
+const MUM_NOTE = {
+  from: "From Mum",
+  body: `Mate,
+You've worked incredibly hard to earn this adventure.
+Take the photos.
+Say yes to new experiences.
+Make memories you'll still be talking about years from now.
+Most of all… enjoy every minute.
+
+Love,
+Mum`,
+};
+
+const FOOTER_TEXT = `Made with love from Mum 🫶🏻 | Version ${APP_VERSION} • USA Adventure 2026`;
+
 const LEGS = [
   {
     id: "leg-miami1",
