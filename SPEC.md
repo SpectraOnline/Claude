@@ -85,10 +85,23 @@ Moody Center), and a local contact card (Austin — Deleigh Hermes).
   category (safety net, not expected in normal use).
 - **Useful Information** — emergency, currency, time zones, power, transport,
   weather, tipping, useful apps.
-- **Texas Bucket List** — checkable list, same persistence pattern as packing.
+- **Trip Bucket List** (was "Texas Bucket List") — grouped by location
+  (Austin, Houston, Key West), same checkbox + per-section "Add
+  something…" pattern as the Packing List. Austin carries the original
+  confirmed content; Houston has the confirmed Astros game; Key West starts
+  empty rather than inventing things to do there. Custom items stored in
+  `taylorUsa2026.bucketCustom` with a `location` tag.
 - **Flights** — empty-state page listing the fields to expect (airline, flight
   numbers, times, booking reference, etc.) until real flight data is confirmed.
   Never populate with invented flight numbers/times/references.
+- **Gallery** — on-device photo gallery. "+ Add Photos" opens the standard
+  mobile file picker (camera or library — works the same on iPhone 16's
+  Safari/Chrome, since iOS mandates WebKit under the hood for all browsers).
+  Photos are resized/re-encoded client-side (max 1600px, JPEG ~0.82 quality)
+  before being stored as Blobs in IndexedDB (`taylorUsa2026Gallery`) —
+  localStorage's ~5-10MB limit can't hold photos, IndexedDB can. Tap a
+  thumbnail for a full-screen lightbox with delete. No upload anywhere —
+  same single-device-only model as everything else in the app.
 
 ## Known Data Gaps (do not fill with invented data)
 
@@ -190,3 +203,12 @@ Moody Center), and a local contact card (Austin — Deleigh Hermes).
   Taylor; generalized the event-flag directions link (was hardcoded to
   Austin's "Moody Center") to use an `eventFlag.venue` field so any leg can
   carry one.
+- Restructured Texas Bucket List into the location-grouped Trip Bucket List
+  (Austin/Houston/Key West) with per-section add-item, reusing the same
+  checklist/add-item building blocks as the Packing List (extracted into
+  shared `renderChecklistItem` / `renderAddItemForm` functions).
+- Added a Gallery page: on-device photo storage via IndexedDB (camera or
+  library picker, client-side compression, lightbox view with delete).
+  Fixed a bug found in testing where the lightbox (appended to `<body>`,
+  outside the normal render tree) stayed open over whatever page you
+  navigated to next — now explicitly closed on every route change.

@@ -307,19 +307,38 @@ const USEFUL_INFO = [
   },
 ];
 
+// Grouped by location so Taylor can add his own items under whichever leg
+// they belong to. Austin's list is the original confirmed content; Houston
+// and Key West start empty (or with only confirmed items) rather than
+// inventing things to do there.
 const BUCKET_LIST = [
-  { text: "Attend PBR Teams: Gambler Days" },
-  { text: "Watch the Austin Gamblers compete" },
-  { text: "Visit Boot Barn", map: "Boot Barn, Austin, TX" },
-  { text: "Visit Sheplers", map: "Sheplers, Austin, TX" },
-  { text: "Buy a quality pair of cowboy boots" },
-  { text: "Eat authentic Texas BBQ" },
-  { text: "Explore Downtown Austin", map: "Downtown Austin, TX" },
-  { text: "Walk along South Congress", map: "South Congress Avenue, Austin, TX" },
-  { text: "Visit the Texas State Capitol (if time permits)", map: "Texas State Capitol, Austin, TX" },
-  { text: "Listen to live music" },
-  { text: "Take photos at the Moody Center", map: "Moody Center, Austin, TX" },
-  { text: "Buy one souvenir that reminds you of Texas" },
+  {
+    location: "Austin",
+    items: [
+      { text: "Attend PBR Teams: Gambler Days" },
+      { text: "Watch the Austin Gamblers compete" },
+      { text: "Visit Boot Barn", map: "Boot Barn, Austin, TX" },
+      { text: "Visit Sheplers", map: "Sheplers, Austin, TX" },
+      { text: "Buy a quality pair of cowboy boots" },
+      { text: "Eat authentic Texas BBQ" },
+      { text: "Explore Downtown Austin", map: "Downtown Austin, TX" },
+      { text: "Walk along South Congress", map: "South Congress Avenue, Austin, TX" },
+      { text: "Visit the Texas State Capitol (if time permits)", map: "Texas State Capitol, Austin, TX" },
+      { text: "Listen to live music" },
+      { text: "Take photos at the Moody Center", map: "Moody Center, Austin, TX" },
+      { text: "Buy one souvenir that reminds you of Texas" },
+    ],
+  },
+  {
+    location: "Houston",
+    items: [
+      { text: "Watch Athletics @ Astros at Daikin Park", map: "Daikin Park, Houston, TX" },
+    ],
+  },
+  {
+    location: "Key West",
+    items: [],
+  },
 ];
 
 const FLIGHT_FIELDS = [

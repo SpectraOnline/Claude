@@ -5,6 +5,7 @@ const STORAGE_KEYS = {
   packing: "taylorUsa2026.packing",
   packingCustom: "taylorUsa2026.packingCustom",
   bucket: "taylorUsa2026.bucket",
+  bucketCustom: "taylorUsa2026.bucketCustom",
   notes: "taylorUsa2026.notes",
 };
 
@@ -33,6 +34,105 @@ function saveState(key, state) {
   } catch (e) {
     // storage unavailable (private mode / full) — fail silently, UI still works this session
   }
+}
+
+// ---------- Gallery storage (IndexedDB — photos are too large for localStorage) ----------
+
+const GALLERY_DB = "taylorUsa2026Gallery";
+const GALLERY_STORE = "photos";
+
+function openGalleryDb() {
+  return new Promise((resolve, reject) => {
+    if (!("indexedDB" in window)) {
+      reject(new Error("IndexedDB unavailable"));
+      return;
+    }
+    const req = indexedDB.open(GALLERY_DB, 1);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains(GALLERY_STORE)) {
+        db.createObjectStore(GALLERY_STORE, { keyPath: "id" });
+      }
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function addGalleryPhoto(blob) {
+  const db = await openGalleryDb();
+  const id = `p${Date.now()}${Math.random().toString(36).slice(2, 8)}`;
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(GALLERY_STORE, "readwrite");
+    tx.objectStore(GALLERY_STORE).put({ id, blob, createdAt: Date.now() });
+    tx.oncomplete = () => resolve(id);
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+async function getGalleryPhotos() {
+  const db = await openGalleryDb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(GALLERY_STORE, "readonly");
+    const req = tx.objectStore(GALLERY_STORE).getAll();
+    req.onsuccess = () => resolve(req.result.sort((a, b) => b.createdAt - a.createdAt));
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function deleteGalleryPhoto(id) {
+  const db = await openGalleryDb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(GALLERY_STORE, "readwrite");
+    tx.objectStore(GALLERY_STORE).delete(id);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+// Resize/re-encode on-device so a multi-MB iPhone photo doesn't eat the
+// device's storage quota in a handful of shots.
+function compressImageFile(file, maxDim = 1600, quality = 0.82) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      let { width, height } = img;
+      if (width > height && width > maxDim) {
+        height = Math.round((height * maxDim) / width);
+        width = maxDim;
+      } else if (height >= width && height > maxDim) {
+        width = Math.round((width * maxDim) / height);
+        height = maxDim;
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+      canvas.toBlob(
+        (blob) => {
+          URL.revokeObjectURL(url);
+          if (blob) resolve(blob);
+          else reject(new Error("Could not encode image"));
+        },
+        "image/jpeg",
+        quality
+      );
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("Could not read image"));
+    };
+    img.src = url;
+  });
+}
+
+// Object URLs created for the currently-rendered gallery, so they can be
+// revoked before the next render instead of leaking memory.
+let galleryObjectUrls = [];
+function revokeGalleryUrls() {
+  galleryObjectUrls.forEach((u) => URL.revokeObjectURL(u));
+  galleryObjectUrls = [];
 }
 
 // ---------- Date helpers ----------
@@ -260,8 +360,9 @@ function renderHome() {
   const quick = el("div", { class: "quick-grid" }, [
     quickLink("#packing", "Packing List", "Interactive checklist"),
     quickLink("#info", "Useful Information", "Emergency, currency, tipping & more"),
-    quickLink("#bucket", "Texas Bucket List", "Things to do & see"),
+    quickLink("#bucket", "Trip Bucket List", "Things to do & see"),
     quickLink("#flights", "Flights", "Awaiting documentation"),
+    quickLink("#gallery", "Gallery", "Photos saved on this device"),
   ]);
   wrap.append(quick);
 
@@ -498,7 +599,9 @@ function formatShortDate(str) {
 
 // ---------- Packing List ----------
 
-function renderPackingCheckItem(label, key, state, onDelete) {
+// Shared by the Packing List and Bucket List, which both persist a set of
+// checked keys plus a user-added-items array grouped by category/location.
+function renderChecklistItem(label, key, state, stateStorageKey, { onDelete, mapQuery } = {}) {
   const isChecked = !!state[key];
   const li = el("li", { class: `checklist-item ${isChecked ? "checklist-item--checked" : ""}` });
   const box = el("span", { class: "checkbox", "aria-hidden": "true" });
@@ -506,9 +609,24 @@ function renderPackingCheckItem(label, key, state, onDelete) {
   li.append(box, labelEl);
   li.addEventListener("click", () => {
     state[key] = !state[key];
-    saveState(STORAGE_KEYS.packing, state);
+    saveState(stateStorageKey, state);
     render();
   });
+  if (mapQuery) {
+    const pin = el(
+      "a",
+      {
+        href: mapsUrl(mapQuery),
+        class: "bucket-pin",
+        target: "_blank",
+        rel: "noopener",
+        "aria-label": `Get directions to ${label}`,
+      },
+      mapPinIcon()
+    );
+    pin.addEventListener("click", (e) => e.stopPropagation());
+    li.append(pin);
+  }
   if (onDelete) {
     const del = el(
       "button",
@@ -524,11 +642,11 @@ function renderPackingCheckItem(label, key, state, onDelete) {
   return li;
 }
 
-function renderAddItemForm(category) {
+function renderAddItemForm(customStorageKey, groupField, groupValue, placeholder = "Add an item…") {
   const input = el("input", {
     type: "text",
     class: "add-item-input",
-    placeholder: "Add an item…",
+    placeholder,
     maxlength: "60",
   });
   const form = el("form", { class: "add-item-form" }, [
@@ -539,9 +657,9 @@ function renderAddItemForm(category) {
     e.preventDefault();
     const text = input.value.trim();
     if (!text) return;
-    const items = loadState(STORAGE_KEYS.packingCustom, []);
-    items.push({ id: `c${Date.now()}${Math.random().toString(36).slice(2, 6)}`, text, category });
-    saveState(STORAGE_KEYS.packingCustom, items);
+    const items = loadState(customStorageKey, []);
+    items.push({ id: `c${Date.now()}${Math.random().toString(36).slice(2, 6)}`, text, [groupField]: groupValue });
+    saveState(customStorageKey, items);
     render();
   });
   return form;
@@ -568,7 +686,7 @@ function renderPacking() {
       const key = `${category}::${item}`;
       total += 1;
       if (state[key]) checked += 1;
-      list.append(renderPackingCheckItem(item, key, state));
+      list.append(renderChecklistItem(item, key, state, STORAGE_KEYS.packing));
     });
 
     customItems
@@ -578,12 +696,14 @@ function renderPacking() {
         total += 1;
         if (state[key]) checked += 1;
         list.append(
-          renderPackingCheckItem(c.text, key, state, () => {
-            const remaining = loadState(STORAGE_KEYS.packingCustom, []).filter((i) => i.id !== c.id);
-            saveState(STORAGE_KEYS.packingCustom, remaining);
-            delete state[key];
-            saveState(STORAGE_KEYS.packing, state);
-            render();
+          renderChecklistItem(c.text, key, state, STORAGE_KEYS.packing, {
+            onDelete: () => {
+              const remaining = loadState(STORAGE_KEYS.packingCustom, []).filter((i) => i.id !== c.id);
+              saveState(STORAGE_KEYS.packingCustom, remaining);
+              delete state[key];
+              saveState(STORAGE_KEYS.packing, state);
+              render();
+            },
           })
         );
       });
@@ -591,7 +711,7 @@ function renderPacking() {
     const cardChildren = [sectionHeadingInline(category)];
     if (group.note) cardChildren.push(el("p", { class: "note-text" }, group.note));
     if (list.children.length) cardChildren.push(list);
-    cardChildren.push(renderAddItemForm(category));
+    cardChildren.push(renderAddItemForm(STORAGE_KEYS.packingCustom, "category", category));
 
     wrap.append(card(cardChildren));
   });
@@ -606,16 +726,20 @@ function renderPacking() {
       total += 1;
       if (state[key]) checked += 1;
       list.append(
-        renderPackingCheckItem(c.text, key, state, () => {
-          const remaining = loadState(STORAGE_KEYS.packingCustom, []).filter((i) => i.id !== c.id);
-          saveState(STORAGE_KEYS.packingCustom, remaining);
-          delete state[key];
-          saveState(STORAGE_KEYS.packing, state);
-          render();
+        renderChecklistItem(c.text, key, state, STORAGE_KEYS.packing, {
+          onDelete: () => {
+            const remaining = loadState(STORAGE_KEYS.packingCustom, []).filter((i) => i.id !== c.id);
+            saveState(STORAGE_KEYS.packingCustom, remaining);
+            delete state[key];
+            saveState(STORAGE_KEYS.packing, state);
+            render();
+          },
         })
       );
     });
-    wrap.append(card([sectionHeadingInline("Other"), list, renderAddItemForm("Other")]));
+    wrap.append(
+      card([sectionHeadingInline("Other"), list, renderAddItemForm(STORAGE_KEYS.packingCustom, "category", "Other")])
+    );
   }
 
   progressEl.textContent = `${checked} of ${total} packed`;
@@ -662,46 +786,84 @@ function renderInfo() {
   return wrap;
 }
 
-// ---------- Texas Bucket List ----------
+// ---------- Trip Bucket List ----------
 
 function renderBucket() {
   const wrap = el("div", { class: "view" });
-  wrap.append(pageHeader("Texas Bucket List", "Things to see and do."));
+  wrap.append(pageHeader("Trip Bucket List", "Things to see and do."));
 
   const state = loadState(STORAGE_KEYS.bucket);
-  const list = el("ul", { class: "checklist" });
+  const customItems = loadState(STORAGE_KEYS.bucketCustom, []);
+  const knownLocations = BUCKET_LIST.map((g) => g.location);
+  let total = 0;
   let checked = 0;
 
-  BUCKET_LIST.forEach((item, idx) => {
-    const key = `item-${idx}`;
-    const isChecked = !!state[key];
-    if (isChecked) checked += 1;
-    const li = el("li", { class: `checklist-item ${isChecked ? "checklist-item--checked" : ""}` });
-    const box = el("span", { class: "checkbox", "aria-hidden": "true" });
-    const label = el("span", { class: "checklist-label" }, item.text);
-    li.append(box, label);
-    li.addEventListener("click", () => {
-      state[key] = !state[key];
-      saveState(STORAGE_KEYS.bucket, state);
-      render();
+  const progressEl = el("div", { class: "progress-banner" });
+  wrap.append(progressEl);
+
+  BUCKET_LIST.forEach((section) => {
+    const location = section.location;
+    const list = el("ul", { class: "checklist" });
+
+    section.items.forEach((item) => {
+      const key = `${location}::${item.text}`;
+      total += 1;
+      if (state[key]) checked += 1;
+      list.append(renderChecklistItem(item.text, key, state, STORAGE_KEYS.bucket, { mapQuery: item.map }));
     });
-    if (item.map) {
-      const pin = el("a", {
-        href: mapsUrl(item.map),
-        class: "bucket-pin",
-        target: "_blank",
-        rel: "noopener",
-        "aria-label": `Get directions to ${item.text}`,
-      }, mapPinIcon());
-      pin.addEventListener("click", (e) => e.stopPropagation());
-      li.append(pin);
-    }
-    list.append(li);
+
+    customItems
+      .filter((c) => c.location === location)
+      .forEach((c) => {
+        const key = `${location}::Custom::${c.id}`;
+        total += 1;
+        if (state[key]) checked += 1;
+        list.append(
+          renderChecklistItem(c.text, key, state, STORAGE_KEYS.bucket, {
+            onDelete: () => {
+              const remaining = loadState(STORAGE_KEYS.bucketCustom, []).filter((i) => i.id !== c.id);
+              saveState(STORAGE_KEYS.bucketCustom, remaining);
+              delete state[key];
+              saveState(STORAGE_KEYS.bucket, state);
+              render();
+            },
+          })
+        );
+      });
+
+    const cardChildren = [sectionHeadingInline(location)];
+    if (list.children.length) cardChildren.push(list);
+    else cardChildren.push(el("p", { class: "note-text" }, "Nothing here yet — add something below."));
+    cardChildren.push(renderAddItemForm(STORAGE_KEYS.bucketCustom, "location", location, "Add something…"));
+
+    wrap.append(card(cardChildren));
   });
 
-  const progressEl = el("div", { class: "progress-banner" }, `${checked} of ${BUCKET_LIST.length} done`);
-  wrap.append(progressEl);
-  wrap.append(card([list]));
+  const orphaned = customItems.filter((c) => !knownLocations.includes(c.location));
+  if (orphaned.length) {
+    const list = el("ul", { class: "checklist" });
+    orphaned.forEach((c) => {
+      const key = `Other::Custom::${c.id}`;
+      total += 1;
+      if (state[key]) checked += 1;
+      list.append(
+        renderChecklistItem(c.text, key, state, STORAGE_KEYS.bucket, {
+          onDelete: () => {
+            const remaining = loadState(STORAGE_KEYS.bucketCustom, []).filter((i) => i.id !== c.id);
+            saveState(STORAGE_KEYS.bucketCustom, remaining);
+            delete state[key];
+            saveState(STORAGE_KEYS.bucket, state);
+            render();
+          },
+        })
+      );
+    });
+    wrap.append(
+      card([sectionHeadingInline("Other"), list, renderAddItemForm(STORAGE_KEYS.bucketCustom, "location", "Other", "Add something…")])
+    );
+  }
+
+  progressEl.textContent = `${checked} of ${total} done`;
 
   return wrap;
 }
@@ -739,6 +901,111 @@ function renderFlights() {
   return wrap;
 }
 
+// ---------- Gallery ----------
+
+// Tracked outside the normal #app render tree (it's appended to <body>), so
+// navigation must explicitly close it — see closeLightbox() call in render().
+let activeLightbox = null;
+
+function closeLightbox() {
+  if (activeLightbox) {
+    activeLightbox.remove();
+    activeLightbox = null;
+  }
+}
+
+function openLightbox(url, onDelete) {
+  const overlay = el("div", { class: "lightbox" });
+  const img = el("img", { src: url, class: "lightbox-img", alt: "" });
+  const closeBtn = el(
+    "button",
+    { class: "lightbox-close", type: "button", "aria-label": "Close" },
+    "×"
+  );
+  const deleteBtn = el("button", { class: "lightbox-delete", type: "button" }, "Delete photo");
+
+  closeBtn.addEventListener("click", closeLightbox);
+  overlay.addEventListener("click", (e) => {
+    if (e.target === overlay) closeLightbox();
+  });
+  deleteBtn.addEventListener("click", async () => {
+    deleteBtn.disabled = true;
+    await onDelete();
+    closeLightbox();
+  });
+
+  overlay.append(img, closeBtn, deleteBtn);
+  document.body.append(overlay);
+  activeLightbox = overlay;
+}
+
+function renderGallery() {
+  const wrap = el("div", { class: "view" });
+  wrap.append(pageHeader("Gallery", "Photos saved on this device."));
+
+  const fileInput = el("input", {
+    type: "file",
+    accept: "image/*",
+    multiple: "multiple",
+    class: "gallery-file-input",
+  });
+  const addBtn = el("label", { class: "gallery-add-btn" }, ["+ Add Photos", fileInput]);
+  const status = el("p", { class: "note-text" }, "");
+  const grid = el("div", { class: "gallery-grid" });
+
+  wrap.append(card([addBtn, status]));
+  wrap.append(grid);
+
+  async function loadPhotos() {
+    revokeGalleryUrls();
+    grid.replaceChildren();
+    let photos;
+    try {
+      photos = await getGalleryPhotos();
+    } catch (e) {
+      grid.append(el("p", { class: "note-text" }, "Photos aren't available in this browser."));
+      return;
+    }
+    if (!photos.length) {
+      grid.append(el("p", { class: "note-text" }, "No photos yet — tap Add Photos to get started."));
+      return;
+    }
+    photos.forEach((photo) => {
+      const url = URL.createObjectURL(photo.blob);
+      galleryObjectUrls.push(url);
+      const tile = el("div", { class: "gallery-tile" }, [el("img", { src: url, class: "gallery-thumb", alt: "" })]);
+      tile.addEventListener("click", () => {
+        openLightbox(url, async () => {
+          await deleteGalleryPhoto(photo.id);
+          loadPhotos();
+        });
+      });
+      grid.append(tile);
+    });
+  }
+
+  fileInput.addEventListener("change", async () => {
+    const files = Array.from(fileInput.files || []);
+    if (!files.length) return;
+    status.textContent = `Saving ${files.length} photo${files.length > 1 ? "s" : ""}…`;
+    try {
+      for (const file of files) {
+        const blob = await compressImageFile(file);
+        await addGalleryPhoto(blob);
+      }
+      status.textContent = "";
+    } catch (e) {
+      status.textContent = "Couldn't save one or more photos — the device may be low on storage.";
+    }
+    fileInput.value = "";
+    loadPhotos();
+  });
+
+  loadPhotos();
+
+  return wrap;
+}
+
 // ---------- Routing ----------
 
 const ROUTES = {
@@ -747,6 +1014,7 @@ const ROUTES = {
   info: renderInfo,
   bucket: renderBucket,
   flights: renderFlights,
+  gallery: renderGallery,
 };
 
 function buildFooter() {
@@ -754,7 +1022,9 @@ function buildFooter() {
 }
 
 function render() {
+  closeLightbox();
   const hash = (location.hash || "#home").slice(1);
+  if (hash !== "gallery") revokeGalleryUrls();
   let view;
 
   const leg = LEGS.find((l) => l.id === hash);
