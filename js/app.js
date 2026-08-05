@@ -3,7 +3,9 @@
 
 const STORAGE_KEYS = {
   packing: "taylorUsa2026.packing",
+  packingCustom: "taylorUsa2026.packingCustom",
   bucket: "taylorUsa2026.bucket",
+  notes: "taylorUsa2026.notes",
 };
 
 const app = document.getElementById("app");
@@ -11,14 +13,17 @@ const drawer = document.getElementById("drawer");
 const overlay = document.getElementById("overlay");
 const menuBtn = document.getElementById("menuBtn");
 
+// Transient (not persisted) — which note fields currently show their textarea.
+const editingNotes = new Set();
+
 // ---------- Storage helpers ----------
 
-function loadState(key) {
+function loadState(key, fallback = {}) {
   try {
     const raw = localStorage.getItem(key);
-    return raw ? JSON.parse(raw) : {};
+    return raw ? JSON.parse(raw) : fallback;
   } catch (e) {
-    return {};
+    return fallback;
   }
 }
 
@@ -119,6 +124,78 @@ function placeholderRow(label) {
     el("span", { class: "placeholder-label" }, label),
     el("span", { class: "placeholder-badge" }, "Details to follow"),
   ]);
+}
+
+function renderNoteField(key, placeholderText = "Add a note…") {
+  const notes = loadState(STORAGE_KEYS.notes);
+  const existing = notes[key] || "";
+  const isEditing = editingNotes.has(key);
+
+  if (isEditing) {
+    const textarea = el("textarea", {
+      class: "note-field-input",
+      placeholder: placeholderText,
+      rows: "2",
+    });
+    textarea.value = existing;
+    const save = () => {
+      const val = textarea.value.trim();
+      const all = loadState(STORAGE_KEYS.notes);
+      if (val) all[key] = val;
+      else delete all[key];
+      saveState(STORAGE_KEYS.notes, all);
+      editingNotes.delete(key);
+      render();
+    };
+    const saveBtn = el("button", { class: "note-field-save", type: "button", onclick: save }, "Save");
+    const cancelBtn = el(
+      "button",
+      {
+        class: "note-field-cancel",
+        type: "button",
+        onclick: () => {
+          editingNotes.delete(key);
+          render();
+        },
+      },
+      "Cancel"
+    );
+    return el("div", { class: "note-field note-field--editing" }, [
+      textarea,
+      el("div", { class: "note-field-actions" }, [saveBtn, cancelBtn]),
+    ]);
+  }
+
+  if (existing) {
+    return el("div", { class: "note-field note-field--saved" }, [
+      el("p", { class: "note-field-text" }, existing),
+      el(
+        "button",
+        {
+          class: "note-field-edit",
+          type: "button",
+          onclick: () => {
+            editingNotes.add(key);
+            render();
+          },
+        },
+        "Edit note"
+      ),
+    ]);
+  }
+
+  return el(
+    "button",
+    {
+      class: "note-field-add",
+      type: "button",
+      onclick: () => {
+        editingNotes.add(key);
+        render();
+      },
+    },
+    "+ Add a note"
+  );
 }
 
 function card(children, extraClass = "") {
@@ -241,6 +318,7 @@ function renderLeg(leg) {
       if (p.address.area) {
         accomChildren.push(directionsLink(`${p.address.area}, ${leg.location}`, "View area on map"));
       }
+      accomChildren.push(renderNoteField(`${leg.id}-address`, "Paste the full address here once you have it"));
     }
   }
 
@@ -252,6 +330,9 @@ function renderLeg(leg) {
     if (p.confirmationNote) {
       accomChildren.push(el("p", { class: "note-text" }, p.confirmationNote));
     }
+    accomChildren.push(
+      renderNoteField(`${leg.id}-confirmation`, "Jot the confirmation number here once you have it")
+    );
   }
 
   if (p.checkInMethod) {
@@ -414,11 +495,72 @@ function formatShortDate(str) {
 
 // ---------- Packing List ----------
 
+function renderCustomPackingSection(state, customItems) {
+  const list = el("ul", { class: "checklist" });
+
+  customItems.forEach((item) => {
+    const key = `Custom::${item.id}`;
+    const isChecked = !!state[key];
+    const li = el("li", { class: `checklist-item ${isChecked ? "checklist-item--checked" : ""}` });
+    const box = el("span", { class: "checkbox", "aria-hidden": "true" });
+    const label = el("span", { class: "checklist-label" }, item.text);
+    li.append(box, label);
+    li.addEventListener("click", () => {
+      state[key] = !state[key];
+      saveState(STORAGE_KEYS.packing, state);
+      render();
+    });
+
+    const del = el(
+      "button",
+      { class: "checklist-delete", type: "button", "aria-label": `Remove ${item.text}` },
+      "×"
+    );
+    del.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const remaining = loadState(STORAGE_KEYS.packingCustom, []).filter((i) => i.id !== item.id);
+      saveState(STORAGE_KEYS.packingCustom, remaining);
+      delete state[key];
+      saveState(STORAGE_KEYS.packing, state);
+      render();
+    });
+    li.append(del);
+    list.append(li);
+  });
+
+  const input = el("input", {
+    type: "text",
+    class: "add-item-input",
+    placeholder: "Add an item…",
+    maxlength: "60",
+  });
+  const form = el("form", { class: "add-item-form" }, [
+    input,
+    el("button", { class: "add-item-btn", type: "submit" }, "Add"),
+  ]);
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const text = input.value.trim();
+    if (!text) return;
+    const items = loadState(STORAGE_KEYS.packingCustom, []);
+    items.push({ id: `c${Date.now()}${Math.random().toString(36).slice(2, 6)}`, text });
+    saveState(STORAGE_KEYS.packingCustom, items);
+    render();
+  });
+
+  return card([
+    sectionHeadingInline("Your Additions"),
+    customItems.length ? list : el("p", { class: "note-text" }, "Add anything that's not already on the list."),
+    form,
+  ]);
+}
+
 function renderPacking() {
   const wrap = el("div", { class: "view" });
   wrap.append(pageHeader("Packing List", "Tap items as you pack. Saved automatically on this device."));
 
   const state = loadState(STORAGE_KEYS.packing);
+  const customItems = loadState(STORAGE_KEYS.packingCustom, []);
   let total = 0;
   let checked = 0;
 
@@ -455,6 +597,12 @@ function renderPacking() {
     });
     wrap.append(card([sectionHeadingInline(group.category), list]));
   });
+
+  customItems.forEach((item) => {
+    total += 1;
+    if (state[`Custom::${item.id}`]) checked += 1;
+  });
+  wrap.append(renderCustomPackingSection(state, customItems));
 
   progressEl.textContent = `${checked} of ${total} packed`;
 
@@ -565,6 +713,13 @@ function renderFlights() {
       ],
       "card--muted"
     )
+  );
+
+  wrap.append(
+    card([
+      sectionHeadingInline("Notes"),
+      renderNoteField("flights-general", "Jot down flight details here once you have them"),
+    ])
   );
 
   return wrap;

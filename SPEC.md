@@ -70,7 +70,10 @@ Moody Center), and a local contact card (Austin — Deleigh Hermes).
 ### Supporting Pages
 - **Packing List** — interactive checklist grouped by category exactly as
   specified in the source itinerary; per-item checked state persisted in
-  localStorage; progress counter ("X of Y packed").
+  localStorage; progress counter ("X of Y packed"). A "Your Additions"
+  section at the end lets Taylor add his own items (with a delete button)
+  — stored separately (`taylorUsa2026.packingCustom`) and counted into the
+  same progress total.
 - **Useful Information** — emergency, currency, time zones, power, transport,
   weather, tipping, useful apps.
 - **Texas Bucket List** — checkable list, same persistence pattern as packing.
@@ -99,6 +102,16 @@ Moody Center), and a local contact card (Austin — Deleigh Hermes).
   Rendered once in `app.js` (`buildFooter()`) alongside every route, not
   duplicated per page. Bump `APP_VERSION` in `js/data.js` when it's worth
   surfacing a version bump to Taylor.
+
+## Editable Notes
+
+- Wherever a real detail is missing and shown as a "Details to follow"
+  placeholder (Miami villa address & confirmation, Austin/Houston/Miami-return
+  confirmation numbers) and on the Flights page, Taylor can tap "+ Add a note"
+  to type his own free-text note (e.g. once he gets the real confirmation
+  number by email) — editable/clearable afterwards via "Edit note". Persisted
+  in localStorage (`taylorUsa2026.notes`), keyed per field so it's independent
+  of the reference data in `js/data.js`.
 
 ## Useful Information Links
 
@@ -149,3 +162,6 @@ Moody Center), and a local contact card (Austin — Deleigh Hermes).
 - Made app/service names in Useful Information tap-to-open links (Emergency
   911, Uber, Google Maps, Apple Maps, Airbnb, Expedia, Weather App); left
   "Airline App" plain since the airline isn't confirmed yet.
+- Added a "Your Additions" section to the Packing List so Taylor can add his
+  own items (with delete), and editable notes on every "details to follow"
+  placeholder plus the Flights page.
