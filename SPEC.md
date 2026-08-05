@@ -91,9 +91,15 @@ Moody Center), and a local contact card (Austin — Deleigh Hermes).
   confirmed content; Houston has the confirmed Astros game; Key West starts
   empty rather than inventing things to do there. Custom items stored in
   `taylorUsa2026.bucketCustom` with a `location` tag.
-- **Flights** — empty-state page listing the fields to expect (airline, flight
-  numbers, times, booking reference, etc.) until real flight data is confirmed.
-  Never populate with invented flight numbers/times/references.
+- **Flights** — confirmed values (currently: Airline "United", Booking
+  Reference "LDY8D7") show as plain rows; every still-unconfirmed field
+  (flight numbers, departure/arrival airport, departure/arrival times,
+  boarding passes, seat numbers) gets its own placeholder + "+ Add a note"
+  so Taylor can fill each one in individually as he gets it, rather than one
+  shared free-text box. A general "Anything else" note field covers
+  layovers/gate changes/anything that doesn't fit the structured fields.
+  Never populate a structured field with an invented value — only real
+  confirmed data goes in `FLIGHTS` (`js/data.js`).
 - **Gallery** — on-device photo gallery. "+ Add Photos" opens the standard
   mobile file picker (camera or library — works the same on iPhone 16's
   Safari/Chrome, since iOS mandates WebKit under the hood for all browsers).
@@ -129,11 +135,11 @@ Moody Center), and a local contact card (Austin — Deleigh Hermes).
 
 - Wherever a real detail is missing and shown as a "Details to follow"
   placeholder (Miami villa address & confirmation, Austin/Houston/Miami-return
-  confirmation numbers) and on the Flights page, Taylor can tap "+ Add a note"
-  to type his own free-text note (e.g. once he gets the real confirmation
-  number by email) — editable/clearable afterwards via "Edit note". Persisted
-  in localStorage (`taylorUsa2026.notes`), keyed per field so it's independent
-  of the reference data in `js/data.js`.
+  confirmation numbers, each unconfirmed Flights field) and on Useful
+  Information (a general note), Taylor can tap "+ Add a note" to type his
+  own free-text note — editable/clearable afterwards via "Edit note".
+  Persisted in localStorage (`taylorUsa2026.notes`), keyed per field so it's
+  independent of the reference data in `js/data.js`.
 
 ## Useful Information Links
 
@@ -212,3 +218,8 @@ Moody Center), and a local contact card (Austin — Deleigh Hermes).
   Fixed a bug found in testing where the lightbox (appended to `<body>`,
   outside the normal render tree) stayed open over whatever page you
   navigated to next — now explicitly closed on every route change.
+- Added Taylor's confirmed flight details (Airline: United, Booking
+  Reference: LDY8D7) and rebuilt Flights from a flat empty-state list into
+  per-field placeholders + notes, so he can fill in flight numbers/times/
+  seats himself as he gets them. Also added a general note field to Useful
+  Information.

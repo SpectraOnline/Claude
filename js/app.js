@@ -783,6 +783,13 @@ function renderInfo() {
     );
   });
 
+  wrap.append(
+    card([
+      sectionHeadingInline("Notes"),
+      renderNoteField("info-general", "Anything else useful worth remembering"),
+    ])
+  );
+
   return wrap;
 }
 
@@ -872,29 +879,37 @@ function renderBucket() {
 
 function renderFlights() {
   const wrap = el("div", { class: "view" });
-  wrap.append(pageHeader("Flights", "Awaiting documentation."));
 
+  const confirmedRows = [];
+  const pendingBlocks = [];
+
+  FLIGHT_FIELD_DEFS.forEach((f) => {
+    const value = FLIGHTS[f.key];
+    if (value) {
+      confirmedRows.push(infoRow(f.label, value));
+    } else {
+      pendingBlocks.push(placeholderRow(f.label));
+      pendingBlocks.push(
+        renderNoteField(`flights-${f.key}`, `Add the ${f.label.toLowerCase()} here once you have it`)
+      );
+    }
+  });
+
+  const hasConfirmed = confirmedRows.length > 0;
   wrap.append(
-    card(
-      [
-        el("p", { class: "empty-state-text" }, [
-          "Flight itinerary has not yet been reviewed. This section will be populated once booking details are confirmed. No flight numbers, times or references have been invented.",
-        ]),
-        sectionHeadingInline("Will include"),
-        el(
-          "ul",
-          { class: "plain-list" },
-          FLIGHT_FIELDS.map((f) => el("li", {}, f))
-        ),
-      ],
-      "card--muted"
-    )
+    pageHeader("Flights", hasConfirmed ? "Some details confirmed - the rest to follow." : "Awaiting documentation.")
   );
+
+  const cardChildren = [sectionHeadingInline("Flight Details")];
+  if (confirmedRows.length) cardChildren.push(el("div", { class: "info-rows" }, confirmedRows));
+  cardChildren.push(...pendingBlocks);
+
+  wrap.append(card(cardChildren, hasConfirmed ? "" : "card--muted"));
 
   wrap.append(
     card([
-      sectionHeadingInline("Notes"),
-      renderNoteField("flights-general", "Jot down flight details here once you have them"),
+      sectionHeadingInline("Anything else"),
+      renderNoteField("flights-general", "Layovers, gate changes, anything else worth remembering"),
     ])
   );
 

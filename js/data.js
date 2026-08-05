@@ -341,14 +341,29 @@ const BUCKET_LIST = [
   },
 ];
 
-const FLIGHT_FIELDS = [
-  "Airline",
-  "Flight Numbers",
-  "Departure Airport",
-  "Arrival Airport",
-  "Departure Times",
-  "Arrival Times",
-  "Booking Reference",
-  "Boarding Passes",
-  "Seat Numbers (if available)",
+// Confirmed values go here directly (never invented). Anything still null
+// renders as a placeholder with its own editable note in the UI so Taylor
+// can fill it in himself as details come through.
+const FLIGHTS = {
+  airline: "United",
+  flightNumbers: null,
+  departureAirport: null,
+  arrivalAirport: null,
+  departureTimes: null,
+  arrivalTimes: null,
+  bookingReference: "LDY8D7",
+  boardingPasses: null,
+  seatNumbers: null,
+};
+
+const FLIGHT_FIELD_DEFS = [
+  { key: "airline", label: "Airline" },
+  { key: "flightNumbers", label: "Flight Numbers" },
+  { key: "departureAirport", label: "Departure Airport" },
+  { key: "arrivalAirport", label: "Arrival Airport" },
+  { key: "departureTimes", label: "Departure Times" },
+  { key: "arrivalTimes", label: "Arrival Times" },
+  { key: "bookingReference", label: "Booking Reference" },
+  { key: "boardingPasses", label: "Boarding Passes" },
+  { key: "seatNumbers", label: "Seat Numbers (if available)" },
 ];
