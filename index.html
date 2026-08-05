@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#829b86" />
+<title>Taylor's USA Adventure 2026</title>
+<meta name="description" content="Private trip dashboard for Taylor's USA Adventure, 6-24 August 2026." />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%23625ee3'/%3E%3Ctext x='50' y='68' font-size='58' text-anchor='middle' fill='white' font-family='sans-serif'%3E✈%3C/text%3E%3C/svg%3E" />
+<link rel="manifest" href="manifest.webmanifest" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+<header class="app-header">
+  <button id="menuBtn" class="icon-btn" aria-label="Open menu" aria-expanded="false" aria-controls="drawer">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+  </button>
+  <div class="app-title">
+    <span class="app-title-main">Taylor's USA Adventure</span>
+    <span class="app-title-sub">2026</span>
+  </div>
+  <a href="#home" class="icon-btn" aria-label="Home">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5 10v9a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1v-9"/></svg>
+  </a>
+</header>
+
+<div id="overlay" class="overlay"></div>
+<nav id="drawer" class="drawer" aria-label="Main navigation">
+  <div class="drawer-section-label">Overview</div>
+  <a href="#home" class="drawer-link">Home</a>
+
+  <div class="drawer-section-label">Trip Legs</div>
+  <a href="#leg-miami1" class="drawer-link">1. Miami — Work Deployment</a>
+  <a href="#leg-austin" class="drawer-link">2. Austin, Texas</a>
+  <a href="#leg-houston" class="drawer-link">3. Houston, Texas</a>
+  <a href="#leg-miami2" class="drawer-link">4. Miami — Return</a>
+
+  <div class="drawer-section-label">Trip Info</div>
+  <a href="#packing" class="drawer-link">Packing List</a>
+  <a href="#info" class="drawer-link">Useful Information</a>
+  <a href="#bucket" class="drawer-link">Texas Bucket List</a>
+  <a href="#flights" class="drawer-link">Flights</a>
+</nav>
+
+<main id="app" role="main"></main>
+
+<script src="js/data.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
