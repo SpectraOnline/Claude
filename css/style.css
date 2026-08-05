@@ -8,6 +8,7 @@
   --text: #1e2320;
   --muted: #6b756f;
   --border: #e3e5e0;
+  --tint: #ffffff;
 
   --radius: 14px;
   --header-h: 56px;
@@ -123,7 +124,7 @@ p { margin: 0; }
 }
 .drawer-link:hover { background: var(--bg); }
 .drawer-link--active {
-  background: color-mix(in srgb, var(--primary) 14%, white);
+  background: color-mix(in srgb, var(--primary) 14%, var(--tint));
   color: var(--accent);
   font-weight: 600;
   border-right: 3px solid var(--accent);
@@ -172,7 +173,7 @@ main {
 /* Personal note (home page) */
 
 .note-card {
-  background: color-mix(in srgb, var(--secondary) 16%, white);
+  background: color-mix(in srgb, var(--secondary) 16%, var(--tint));
   border-left: 3px solid var(--secondary);
   border-radius: var(--radius);
   padding: 16px 18px;
@@ -292,9 +293,9 @@ main {
   flex-direction: column;
   gap: 10px;
 }
-.card--muted { background: color-mix(in srgb, var(--bg) 60%, white); }
+.card--muted { background: color-mix(in srgb, var(--bg) 60%, var(--tint)); }
 .card--accent {
-  background: color-mix(in srgb, var(--accent) 8%, white);
+  background: color-mix(in srgb, var(--accent) 8%, var(--tint));
   border-color: color-mix(in srgb, var(--accent) 35%, var(--border));
 }
 
@@ -343,7 +344,7 @@ main {
   text-transform: uppercase;
   letter-spacing: 0.03em;
   color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 12%, white);
+  background: color-mix(in srgb, var(--accent) 12%, var(--tint));
   padding: 3px 8px;
   border-radius: 999px;
   white-space: nowrap;
@@ -371,7 +372,7 @@ main {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  background: color-mix(in srgb, var(--primary) 10%, white);
+  background: color-mix(in srgb, var(--primary) 10%, var(--tint));
   border-radius: 10px;
   padding: 10px 12px;
 }
@@ -472,12 +473,12 @@ main {
 .flag-box {
   font-size: 13px;
   line-height: 1.5;
-  background: color-mix(in srgb, var(--secondary) 15%, white);
+  background: color-mix(in srgb, var(--secondary) 15%, var(--tint));
   border-radius: 10px;
   padding: 10px 12px;
 }
 .flag-box--action {
-  background: color-mix(in srgb, var(--accent) 12%, white);
+  background: color-mix(in srgb, var(--accent) 12%, var(--tint));
   border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border));
 }
 
@@ -546,7 +547,7 @@ main {
   font-size: 13px;
   font-weight: 600;
   color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 10%, white);
+  background: color-mix(in srgb, var(--accent) 10%, var(--tint));
   padding: 7px 12px;
   border-radius: 999px;
 }
@@ -619,7 +620,7 @@ main {
   font-weight: 600;
   font-size: 12px;
   color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 10%, white);
+  background: color-mix(in srgb, var(--accent) 10%, var(--tint));
   border-radius: 8px;
   padding: 3px 6px;
   text-align: center;
@@ -706,6 +707,7 @@ main {
     --text: #eef0ee;
     --muted: #9aa39d;
     --border: #2b2f34;
+    --tint: #262b32;
   }
   .checkbox { border-color: #3a3f45; }
 }

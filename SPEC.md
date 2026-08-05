@@ -28,7 +28,12 @@ phone while travelling, with patchy connectivity.
   - Secondary: `#a09edd`
   - Accent: `#625ee3`
 - Single-screen dashboard-style home, mobile-first, no separate landing page.
-- Light/dark aware (respects `prefers-color-scheme`).
+- Light/dark aware (respects `prefers-color-scheme`). Tinted card/badge
+  backgrounds (Mum's note, flag boxes, placeholder badges, directions pills,
+  etc.) are built with `color-mix(..., var(--tint))`, where `--tint` is white
+  in light mode and a dark neutral in dark mode — never hardcode `white` as
+  the mix target, or text becomes unreadable in dark mode (this happened
+  once already).
 
 ## Data & Access Rules (non-negotiable)
 
@@ -169,3 +174,7 @@ Moody Center), and a local contact card (Austin — Deleigh Hermes).
   a *second* reload after a deploy. Switched to network-first (fetch the
   latest when online, fall back to cache only when offline) so updates show
   immediately, while offline use while travelling still works.
+- Fixed dark mode: several tinted backgrounds were hardcoded to mix toward
+  white, making text on them (notably Mum's note) unreadable in dark mode.
+  Introduced a `--tint` variable so tints mix toward the right neutral for
+  the active theme.
