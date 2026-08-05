@@ -5,7 +5,7 @@
 // so updates show up immediately instead of one reload behind. Cache is
 // only used as a fallback when there's genuinely no network (offline use
 // while travelling), not as the default source.
-const CACHE = "taylor-usa-2026-v3";
+const CACHE = "taylor-usa-2026-v4";
 const SHELL = [
   "./",
   "index.html",
@@ -13,6 +13,9 @@ const SHELL = [
   "js/data.js",
   "js/app.js",
   "manifest.webmanifest",
+  "docs/austin-booking.pdf",
+  "docs/houston-booking.pdf",
+  "docs/miami-return-booking.pdf",
 ];
 
 self.addEventListener("install", (event) => {

@@ -135,6 +135,140 @@ function revokeGalleryUrls() {
   galleryObjectUrls = [];
 }
 
+// ---------- Document storage (IndexedDB — booking PDFs Taylor uploads himself) ----------
+// One document per "slot" (e.g. a leg's booking confirmation, or Flights) —
+// uploading again replaces whatever was there, via the "slot" keyPath.
+
+const DOCS_DB = "taylorUsa2026Docs";
+const DOCS_STORE = "docs";
+
+function openDocsDb() {
+  return new Promise((resolve, reject) => {
+    if (!("indexedDB" in window)) {
+      reject(new Error("IndexedDB unavailable"));
+      return;
+    }
+    const req = indexedDB.open(DOCS_DB, 1);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains(DOCS_STORE)) {
+        db.createObjectStore(DOCS_STORE, { keyPath: "slot" });
+      }
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function setDoc(slot, file) {
+  const db = await openDocsDb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(DOCS_STORE, "readwrite");
+    tx.objectStore(DOCS_STORE).put({ slot, blob: file, filename: file.name, savedAt: Date.now() });
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+async function getDoc(slot) {
+  const db = await openDocsDb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(DOCS_STORE, "readonly");
+    const req = tx.objectStore(DOCS_STORE).get(slot);
+    req.onsuccess = () => resolve(req.result || null);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function deleteDoc(slot) {
+  const db = await openDocsDb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(DOCS_STORE, "readwrite");
+    tx.objectStore(DOCS_STORE).delete(slot);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+let docObjectUrls = [];
+function revokeDocUrls() {
+  docObjectUrls.forEach((u) => URL.revokeObjectURL(u));
+  docObjectUrls = [];
+}
+
+// Renders an upload/view/replace/remove control for one document slot.
+// `defaultPath` (optional) is a bundled static PDF shown until Taylor
+// uploads his own, at which point the upload takes over.
+function renderDocSlot(slot, label, defaultPath) {
+  const container = el("div", { class: "doc-slot" });
+  const uploadText = el("span", {}, `+ Upload ${label} (PDF)`);
+  const fileInput = el("input", { type: "file", accept: "application/pdf,.pdf", class: "gallery-file-input" });
+  const uploadLabel = el("label", { class: "doc-upload-btn" }, [uploadText, fileInput]);
+  const statusText = el("p", { class: "note-text doc-status" }, "");
+
+  async function refresh() {
+    const rows = [];
+    let doc = null;
+    try {
+      doc = await getDoc(slot);
+    } catch (e) {
+      doc = null;
+    }
+
+    if (doc) {
+      const url = URL.createObjectURL(doc.blob);
+      docObjectUrls.push(url);
+      const removeBtn = el("button", { class: "doc-remove", type: "button" }, "Remove");
+      removeBtn.addEventListener("click", async () => {
+        await deleteDoc(slot);
+        refresh();
+      });
+      rows.push(
+        el("div", { class: "doc-row" }, [
+          el("span", { class: "doc-icon" }, "📄"),
+          el("a", { href: url, class: "doc-name", target: "_blank", rel: "noopener" }, doc.filename),
+          removeBtn,
+        ])
+      );
+      uploadText.textContent = "Replace PDF";
+    } else if (defaultPath) {
+      rows.push(
+        el("div", { class: "doc-row" }, [
+          el("span", { class: "doc-icon" }, "📄"),
+          el("a", { href: defaultPath, class: "doc-name", target: "_blank", rel: "noopener" }, `${label} (PDF)`),
+        ])
+      );
+      uploadText.textContent = "Replace with your own PDF";
+    } else {
+      uploadText.textContent = `+ Upload ${label} (PDF)`;
+    }
+
+    container.replaceChildren(...rows, uploadLabel, statusText);
+  }
+
+  fileInput.addEventListener("change", async () => {
+    const file = fileInput.files && fileInput.files[0];
+    if (!file) return;
+    if (file.type !== "application/pdf") {
+      statusText.textContent = "Please choose a PDF file.";
+      fileInput.value = "";
+      return;
+    }
+    statusText.textContent = "Saving…";
+    try {
+      await setDoc(slot, file);
+      statusText.textContent = "";
+    } catch (e) {
+      statusText.textContent = "Couldn't save that file — the device may be low on storage.";
+    }
+    fileInput.value = "";
+    refresh();
+  });
+
+  refresh();
+  return container;
+}
+
 // ---------- Date helpers ----------
 
 function parseDate(str) {
@@ -453,6 +587,10 @@ function renderLeg(leg) {
   }
 
   wrap.append(card(accomChildren));
+
+  wrap.append(
+    card([sectionHeadingInline("Booking Document"), renderDocSlot(leg.id, "booking confirmation", p.confirmationPdf)])
+  );
 
   // Event flag
   if (leg.eventFlag) {
@@ -906,6 +1044,8 @@ function renderFlights() {
 
   wrap.append(card(cardChildren, hasConfirmed ? "" : "card--muted"));
 
+  wrap.append(card([sectionHeadingInline("Flight Documents"), renderDocSlot("flights", "e-ticket / itinerary", null)]));
+
   wrap.append(
     card([
       sectionHeadingInline("Anything else"),
@@ -1038,6 +1178,7 @@ function buildFooter() {
 
 function render() {
   closeLightbox();
+  revokeDocUrls();
   const hash = (location.hash || "#home").slice(1);
   if (hash !== "gallery") revokeGalleryUrls();
   let view;

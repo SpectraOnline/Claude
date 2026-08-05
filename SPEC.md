@@ -131,6 +131,24 @@ Moody Center), and a local contact card (Austin — Deleigh Hermes).
   duplicated per page. Bump `APP_VERSION` in `js/data.js` when it's worth
   surfacing a version bump to Taylor.
 
+## Booking Documents (PDF)
+
+- Each leg's accommodation card has a "Booking Document" slot, and Flights
+  has a "Flight Documents" slot — same upload/view/replace/remove control
+  (`renderDocSlot` in `js/app.js`), backed by IndexedDB (`taylorUsa2026Docs`)
+  since PDFs don't fit in localStorage. One document per slot; uploading
+  again replaces the previous one.
+- Austin, Houston, and the Miami-return leg ship with their real Expedia
+  booking-confirmation PDFs bundled as static files in `docs/` (linked via
+  `property.confirmationPdf` in `js/data.js`) and precached by the service
+  worker, so they're available offline from the first load — not just after
+  Taylor views them once online. The Miami villa (leg 1, Airbnb) and
+  Flights have no bundled default, only the upload option, since no PDF
+  exists for those yet.
+- Uploading your own PDF to a slot that has a bundled default replaces it
+  in the UI; removing your upload reverts to showing the bundled default
+  again (it's never deleted, just superseded).
+
 ## Editable Notes
 
 - Wherever a real detail is missing and shown as a "Details to follow"
@@ -223,3 +241,7 @@ Moody Center), and a local contact card (Austin — Deleigh Hermes).
   per-field placeholders + notes, so he can fill in flight numbers/times/
   seats himself as he gets them. Also added a general note field to Useful
   Information.
+- Added PDF booking-document upload (IndexedDB, `renderDocSlot`) to every
+  leg's accommodation card and to Flights; bundled Taylor's real Expedia
+  confirmation PDFs for Austin, Houston, and the Miami-return leg as static
+  defaults, precached for offline use.

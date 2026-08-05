@@ -146,6 +146,7 @@ const LEGS = [
       cost: "NZD 711.58 total",
       cancellation: "Non-refundable",
       confirmation: null,
+      confirmationPdf: "docs/austin-booking.pdf",
     },
     eventFlag: {
       name: "PBR Gambler Days, Moody Center",
@@ -181,6 +182,7 @@ const LEGS = [
       confirmation: null,
       confirmationNote:
         "Masked in source data. Taylor should carry the full confirmation number separately (Expedia app/email).",
+      confirmationPdf: "docs/houston-booking.pdf",
     },
     eventFlag: {
       name: "Athletics @ Astros",
@@ -210,6 +212,7 @@ const LEGS = [
       confirmation: null,
       confirmationNote:
         "Masked in source data. Taylor should carry the full confirmation number separately.",
+      confirmationPdf: "docs/miami-return-booking.pdf",
     },
   },
 ];
