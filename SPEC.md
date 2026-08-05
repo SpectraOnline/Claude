@@ -75,10 +75,13 @@ Moody Center), and a local contact card (Austin — Deleigh Hermes).
 ### Supporting Pages
 - **Packing List** — interactive checklist grouped by category exactly as
   specified in the source itinerary; per-item checked state persisted in
-  localStorage; progress counter ("X of Y packed"). A "Your Additions"
-  section at the end lets Taylor add his own items (with a delete button)
-  — stored separately (`taylorUsa2026.packingCustom`) and counted into the
-  same progress total.
+  localStorage; progress counter ("X of Y packed"). Every category card
+  (including "Shopping") has its own "Add an item…" field at the bottom, so
+  Taylor's own additions land in the right section rather than a separate
+  pile — stored with a category tag (`taylorUsa2026.packingCustom`), with a
+  delete (×) button, counted into the same progress total. A catch-all
+  "Other" card only appears if an item's category doesn't match any current
+  category (safety net, not expected in normal use).
 - **Useful Information** — emergency, currency, time zones, power, transport,
   weather, tipping, useful apps.
 - **Texas Bucket List** — checkable list, same persistence pattern as packing.
@@ -178,3 +181,6 @@ Moody Center), and a local contact card (Austin — Deleigh Hermes).
   white, making text on them (notably Mum's note) unreadable in dark mode.
   Introduced a `--tint` variable so tints mix toward the right neutral for
   the active theme.
+- Moved packing "add your own item" from one section at the end to a small
+  form at the bottom of every category card, so additions land where they
+  belong (custom items now carry a `category` field).

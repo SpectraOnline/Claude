@@ -495,39 +495,33 @@ function formatShortDate(str) {
 
 // ---------- Packing List ----------
 
-function renderCustomPackingSection(state, customItems) {
-  const list = el("ul", { class: "checklist" });
-
-  customItems.forEach((item) => {
-    const key = `Custom::${item.id}`;
-    const isChecked = !!state[key];
-    const li = el("li", { class: `checklist-item ${isChecked ? "checklist-item--checked" : ""}` });
-    const box = el("span", { class: "checkbox", "aria-hidden": "true" });
-    const label = el("span", { class: "checklist-label" }, item.text);
-    li.append(box, label);
-    li.addEventListener("click", () => {
-      state[key] = !state[key];
-      saveState(STORAGE_KEYS.packing, state);
-      render();
-    });
-
+function renderPackingCheckItem(label, key, state, onDelete) {
+  const isChecked = !!state[key];
+  const li = el("li", { class: `checklist-item ${isChecked ? "checklist-item--checked" : ""}` });
+  const box = el("span", { class: "checkbox", "aria-hidden": "true" });
+  const labelEl = el("span", { class: "checklist-label" }, label);
+  li.append(box, labelEl);
+  li.addEventListener("click", () => {
+    state[key] = !state[key];
+    saveState(STORAGE_KEYS.packing, state);
+    render();
+  });
+  if (onDelete) {
     const del = el(
       "button",
-      { class: "checklist-delete", type: "button", "aria-label": `Remove ${item.text}` },
+      { class: "checklist-delete", type: "button", "aria-label": `Remove ${label}` },
       "×"
     );
     del.addEventListener("click", (e) => {
       e.stopPropagation();
-      const remaining = loadState(STORAGE_KEYS.packingCustom, []).filter((i) => i.id !== item.id);
-      saveState(STORAGE_KEYS.packingCustom, remaining);
-      delete state[key];
-      saveState(STORAGE_KEYS.packing, state);
-      render();
+      onDelete();
     });
     li.append(del);
-    list.append(li);
-  });
+  }
+  return li;
+}
 
+function renderAddItemForm(category) {
   const input = el("input", {
     type: "text",
     class: "add-item-input",
@@ -543,16 +537,11 @@ function renderCustomPackingSection(state, customItems) {
     const text = input.value.trim();
     if (!text) return;
     const items = loadState(STORAGE_KEYS.packingCustom, []);
-    items.push({ id: `c${Date.now()}${Math.random().toString(36).slice(2, 6)}`, text });
+    items.push({ id: `c${Date.now()}${Math.random().toString(36).slice(2, 6)}`, text, category });
     saveState(STORAGE_KEYS.packingCustom, items);
     render();
   });
-
-  return card([
-    sectionHeadingInline("Your Additions"),
-    customItems.length ? list : el("p", { class: "note-text" }, "Add anything that's not already on the list."),
-    form,
-  ]);
+  return form;
 }
 
 function renderPacking() {
@@ -561,6 +550,7 @@ function renderPacking() {
 
   const state = loadState(STORAGE_KEYS.packing);
   const customItems = loadState(STORAGE_KEYS.packingCustom, []);
+  const knownCategories = PACKING_LIST.map((g) => g.category);
   let total = 0;
   let checked = 0;
 
@@ -568,41 +558,62 @@ function renderPacking() {
   wrap.append(progressEl);
 
   PACKING_LIST.forEach((group) => {
-    if (group.note) {
-      wrap.append(
-        card([
-          sectionHeadingInline(group.category),
-          el("p", { class: "note-text" }, group.note),
-        ])
-      );
-      return;
-    }
+    const category = group.category;
     const list = el("ul", { class: "checklist" });
-    group.items.forEach((item) => {
-      const key = `${group.category}::${item}`;
+
+    (group.items || []).forEach((item) => {
+      const key = `${category}::${item}`;
       total += 1;
-      const isChecked = !!state[key];
-      if (isChecked) checked += 1;
-
-      const li = el("li", { class: `checklist-item ${isChecked ? "checklist-item--checked" : ""}` });
-      const box = el("span", { class: "checkbox", "aria-hidden": "true" });
-      const label = el("span", { class: "checklist-label" }, item);
-      li.append(box, label);
-      li.addEventListener("click", () => {
-        state[key] = !state[key];
-        saveState(STORAGE_KEYS.packing, state);
-        render(); // re-render current route to refresh counts
-      });
-      list.append(li);
+      if (state[key]) checked += 1;
+      list.append(renderPackingCheckItem(item, key, state));
     });
-    wrap.append(card([sectionHeadingInline(group.category), list]));
+
+    customItems
+      .filter((c) => c.category === category)
+      .forEach((c) => {
+        const key = `Custom::${c.id}`;
+        total += 1;
+        if (state[key]) checked += 1;
+        list.append(
+          renderPackingCheckItem(c.text, key, state, () => {
+            const remaining = loadState(STORAGE_KEYS.packingCustom, []).filter((i) => i.id !== c.id);
+            saveState(STORAGE_KEYS.packingCustom, remaining);
+            delete state[key];
+            saveState(STORAGE_KEYS.packing, state);
+            render();
+          })
+        );
+      });
+
+    const cardChildren = [sectionHeadingInline(category)];
+    if (group.note) cardChildren.push(el("p", { class: "note-text" }, group.note));
+    if (list.children.length) cardChildren.push(list);
+    cardChildren.push(renderAddItemForm(category));
+
+    wrap.append(card(cardChildren));
   });
 
-  customItems.forEach((item) => {
-    total += 1;
-    if (state[`Custom::${item.id}`]) checked += 1;
-  });
-  wrap.append(renderCustomPackingSection(state, customItems));
+  // Anything added under a category that no longer exists (safety net, not
+  // expected in normal use) still gets a home instead of silently vanishing.
+  const orphaned = customItems.filter((c) => !knownCategories.includes(c.category));
+  if (orphaned.length) {
+    const list = el("ul", { class: "checklist" });
+    orphaned.forEach((c) => {
+      const key = `Custom::${c.id}`;
+      total += 1;
+      if (state[key]) checked += 1;
+      list.append(
+        renderPackingCheckItem(c.text, key, state, () => {
+          const remaining = loadState(STORAGE_KEYS.packingCustom, []).filter((i) => i.id !== c.id);
+          saveState(STORAGE_KEYS.packingCustom, remaining);
+          delete state[key];
+          saveState(STORAGE_KEYS.packing, state);
+          render();
+        })
+      );
+    });
+    wrap.append(card([sectionHeadingInline("Other"), list, renderAddItemForm("Other")]));
+  }
 
   progressEl.textContent = `${checked} of ${total} packed`;
 
