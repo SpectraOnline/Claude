@@ -165,3 +165,7 @@ Moody Center), and a local contact card (Austin — Deleigh Hermes).
 - Added a "Your Additions" section to the Packing List so Taylor can add his
   own items (with delete), and editable notes on every "details to follow"
   placeholder plus the Flights page.
+- Fixed the service worker: it was cache-first, so updates only appeared on
+  a *second* reload after a deploy. Switched to network-first (fetch the
+  latest when online, fall back to cache only when offline) so updates show
+  immediately, while offline use while travelling still works.

@@ -1,6 +1,11 @@
 // Minimal offline app-shell cache. No content is fetched remotely except
 // the Jost font; everything else needed to view the trip is bundled locally.
-const CACHE = "taylor-usa-2026-v1";
+//
+// Network-first: always serve the latest deploy when there's a connection,
+// so updates show up immediately instead of one reload behind. Cache is
+// only used as a fallback when there's genuinely no network (offline use
+// while travelling), not as the default source.
+const CACHE = "taylor-usa-2026-v2";
 const SHELL = [
   "./",
   "index.html",
@@ -26,18 +31,16 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("fetch", (event) => {
   const req = event.request;
+  if (req.method !== "GET") return;
   event.respondWith(
-    caches.match(req).then((cached) => {
-      const network = fetch(req)
-        .then((res) => {
-          if (res && res.status === 200 && req.method === "GET") {
-            const copy = res.clone();
-            caches.open(CACHE).then((cache) => cache.put(req, copy));
-          }
-          return res;
-        })
-        .catch(() => cached);
-      return cached || network;
-    })
+    fetch(req)
+      .then((res) => {
+        if (res && res.status === 200) {
+          const copy = res.clone();
+          caches.open(CACHE).then((cache) => cache.put(req, copy));
+        }
+        return res;
+      })
+      .catch(() => caches.match(req))
   );
 });
