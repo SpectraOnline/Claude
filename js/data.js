@@ -257,7 +257,7 @@ const PACKING_LIST = [
 ];
 
 const USEFUL_INFO = [
-  { heading: "Emergency", items: ["Emergency Number: 911"] },
+  { heading: "Emergency", items: [{ text: "Emergency Number: 911", url: "tel:911" }] },
   { heading: "Currency", items: ["United States Dollar (USD)"] },
   {
     heading: "Time Zones",
@@ -267,7 +267,14 @@ const USEFUL_INFO = [
     heading: "Power",
     items: ["Type A & Type B plugs", "110V / 60Hz", "Travel adapter required from New Zealand"],
   },
-  { heading: "Transport", items: ["Uber recommended", "Google Maps", "Apple Maps"] },
+  {
+    heading: "Transport",
+    items: [
+      { text: "Uber recommended", url: "https://m.uber.com/" },
+      { text: "Google Maps", url: "https://maps.google.com/" },
+      { text: "Apple Maps", url: "https://maps.apple.com/" },
+    ],
+  },
   {
     heading: "Weather",
     items: ["Miami: Hot, humid, tropical", "Austin/Houston: Hot, dry to humid depending on weather"],
@@ -283,7 +290,14 @@ const USEFUL_INFO = [
   },
   {
     heading: "Useful Apps",
-    items: ["Uber", "Google Maps", "Airbnb", "Expedia", "Airline App", "Weather App"],
+    items: [
+      { text: "Uber", url: "https://m.uber.com/" },
+      { text: "Google Maps", url: "https://maps.google.com/" },
+      { text: "Airbnb", url: "https://www.airbnb.com/" },
+      { text: "Expedia", url: "https://www.expedia.com/" },
+      { text: "Airline App" },
+      { text: "Weather App", url: "https://weather.com/" },
+    ],
   },
 ];
 

@@ -100,6 +100,16 @@ Moody Center), and a local contact card (Austin — Deleigh Hermes).
   duplicated per page. Bump `APP_VERSION` in `js/data.js` when it's worth
   surfacing a version bump to Taylor.
 
+## Useful Information Links
+
+- In the Useful Information page, items that name a specific app or service are
+  tap-to-open links: Emergency Number (`tel:911`), and in Transport / Useful
+  Apps — Uber, Google Maps, Apple Maps, Airbnb, Expedia, Weather App. These
+  open the service's app via universal link where the OS supports it, falling
+  back to the website.
+- "Airline App" is deliberately left as plain text — the airline isn't known
+  yet (flights unconfirmed), so it isn't linked rather than guessing one.
+
 ## Google Maps Directions
 
 - Every "N min away" attraction/dining/shopping entry (Miami leg) links to
@@ -135,3 +145,7 @@ Moody Center), and a local contact card (Austin — Deleigh Hermes).
 - Added Google Maps directions links (attractions/dining/shopping, property
   addresses, event flag, bucket-list landmarks).
 - Added personal note from Mum on the home page, and a site-wide footer.
+- Added SPEC.md as the living requirements doc.
+- Made app/service names in Useful Information tap-to-open links (Emergency
+  911, Uber, Google Maps, Apple Maps, Airbnb, Expedia, Weather App); left
+  "Airline App" plain since the airline isn't confirmed yet.

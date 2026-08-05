@@ -463,6 +463,27 @@ function renderPacking() {
 
 // ---------- Useful Information ----------
 
+function linkArrowIcon() {
+  return el("span", {
+    class: "link-arrow",
+    "aria-hidden": "true",
+    html:
+      '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7"/><path d="M7 7h10v10"/></svg>',
+  });
+}
+
+function renderInfoItem(item) {
+  if (typeof item === "string") return el("li", {}, item);
+  if (!item.url) return el("li", {}, item.text);
+  const isTel = item.url.startsWith("tel:");
+  const attrs = { href: item.url, class: "info-link" };
+  if (!isTel) {
+    attrs.target = "_blank";
+    attrs.rel = "noopener";
+  }
+  return el("li", {}, el("a", attrs, [el("span", {}, item.text), linkArrowIcon()]));
+}
+
 function renderInfo() {
   const wrap = el("div", { class: "view" });
   wrap.append(pageHeader("Useful Information", "Reference details for the trip."));
@@ -471,11 +492,7 @@ function renderInfo() {
     wrap.append(
       card([
         sectionHeadingInline(section.heading),
-        el(
-          "ul",
-          { class: "plain-list" },
-          section.items.map((i) => el("li", {}, i))
-        ),
+        el("ul", { class: "plain-list" }, section.items.map(renderInfoItem)),
       ])
     );
   });

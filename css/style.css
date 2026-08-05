@@ -470,6 +470,20 @@ main {
 .plain-list { display: flex; flex-direction: column; gap: 6px; }
 .plain-list li { font-size: 14px; }
 
+.info-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 0;
+  color: var(--accent);
+  font-weight: 500;
+  font-size: 14px;
+  -webkit-tap-highlight-color: transparent;
+}
+.info-link:active { opacity: 0.65; }
+.link-arrow { display: inline-flex; flex-shrink: 0; opacity: 0.8; }
+
 /* Timeline (work schedule) */
 
 .timeline { display: flex; flex-direction: column; gap: 0; }
