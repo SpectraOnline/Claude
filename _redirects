@@ -1,0 +1,4 @@
+# Force any visit to the old, unprotected Netlify subdomain over to the
+# Cloudflare Access-protected custom domain, so the old link can't be used
+# to bypass the login gate. See SPEC.md "Hosting".
+https://taylor-usa.netlify.app/*  https://taylor-usa.digitalcreative.app/:splat  301!

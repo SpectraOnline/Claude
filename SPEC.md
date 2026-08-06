@@ -41,7 +41,15 @@ business. Concretely:
   `manifest.webmanifest`, `docs/*.pdf` (bundled booking confirmations).
 - Hosted on Netlify, auto-deploying from branch `claude/app-build-markdown-kbijun`
   on every push. Build command: none. Publish directory: repo root.
-- No password gate — access is via the unlisted deploy URL only.
+- **Canonical URL: `https://taylor-usa.digitalcreative.app`** — a custom
+  domain in front of the same Netlify site, gated by Cloudflare Access to
+  only Anna's and Taylor's email addresses. This is the link to share/use.
+  The original `taylor-usa.netlify.app` still exists (Netlify always keeps
+  the auto-generated subdomain alongside any custom domain) but is **not**
+  behind Cloudflare Access, so `_redirects` at the repo root force-redirects
+  it (301) to the custom domain — otherwise it'd be a standing way to
+  bypass the login gate entirely. If the custom domain or its Cloudflare
+  Access setup ever changes, update `_redirects` to match.
 - The only outbound network calls the app ever makes are to Open-Meteo (live
   weather, keyless/CORS-friendly) and Google Maps (opening directions in a
   new tab). Both fail quietly to a static fallback if unreachable — the app
