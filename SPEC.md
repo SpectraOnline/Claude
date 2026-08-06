@@ -147,11 +147,12 @@ UX goal: everything below reachable with minimal scrolling):
    amount + total. Pure client-side, no persistence (deliberately — it's a
    quick lookup tool, not trip data), no calls to `render()` on input so it
    never disrupts the live clock or triggers a full re-render.
-5. **Weather** — live current temperature + condition for the current
-   city via Open-Meteo (free, keyless, CORS-enabled — no API key/backend
-   needed), falling back silently to the static seasonal description
-   (`CITIES[...].fallbackWeather`) if offline or the request fails/times
-   out (6s `AbortController` timeout).
+5. **Weather** — live current temperature (°F and °C, both shown — one
+   Open-Meteo call fetches Celsius, Fahrenheit is derived from it, not a
+   second API call) + a WMO-weather-code emoji icon (`WMO_WEATHER_ICONS`)
+   + condition text, for the current city. Falls back silently to the
+   static seasonal description (`CITIES[...].fallbackWeather`, no icon) if
+   offline or the request fails/times out (6s `AbortController` timeout).
 6. **Next Accommodation** — current/next leg's property name + check-in.
 7. **Next Travel Event** — the next leg transition ("Move to {city}," next
    start date), or a flight-home fallback once on the last leg.

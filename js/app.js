@@ -668,22 +668,52 @@ const WMO_WEATHER_DESCRIPTIONS = {
   99: "Thunderstorm",
 };
 
+const WMO_WEATHER_ICONS = {
+  0: "☀️",
+  1: "🌤️",
+  2: "⛅",
+  3: "☁️",
+  45: "🌫️",
+  48: "🌫️",
+  51: "🌦️",
+  53: "🌦️",
+  55: "🌦️",
+  61: "🌧️",
+  63: "🌧️",
+  65: "🌧️",
+  71: "🌨️",
+  73: "🌨️",
+  75: "🌨️",
+  80: "🌧️",
+  81: "🌧️",
+  82: "🌧️",
+  95: "⛈️",
+  96: "⛈️",
+  99: "⛈️",
+};
+
 // Free, keyless, CORS-enabled - no backend/API key needed. Fails quietly to
-// the static seasonal fallback text if offline or blocked.
+// the static seasonal fallback text if offline or blocked. Fetched in
+// Celsius (Open-Meteo's default) and converted to Fahrenheit here, so both
+// units come from one call instead of two.
 async function fetchLiveWeather(lat, lon) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 6000);
   try {
     const res = await fetch(
-      `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code&temperature_unit=fahrenheit&timezone=auto`,
+      `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code&timezone=auto`,
       { signal: controller.signal }
     );
     clearTimeout(timer);
     if (!res.ok) return null;
     const data = await res.json();
+    const tempC = data.current.temperature_2m;
+    const code = data.current.weather_code;
     return {
-      temp: Math.round(data.current.temperature_2m),
-      desc: WMO_WEATHER_DESCRIPTIONS[data.current.weather_code] || "",
+      tempC: Math.round(tempC),
+      tempF: Math.round((tempC * 9) / 5 + 32),
+      desc: WMO_WEATHER_DESCRIPTIONS[code] || "",
+      icon: WMO_WEATHER_ICONS[code] || "🌡️",
     };
   } catch (e) {
     clearTimeout(timer);
@@ -694,16 +724,21 @@ async function fetchLiveWeather(lat, lon) {
 function renderWeatherTile() {
   const leg = getCurrentOrNextLeg();
   const city = cityInfo(leg.location);
-  const valueEl = el("div", { class: "stat-tile-value stat-tile-value--sm" }, city ? city.fallbackWeather : "—");
+  const iconEl = el("span", { class: "weather-icon" }, "🌡️");
+  const valueEl = el("span", { class: "stat-tile-value stat-tile-value--sm" }, city ? city.fallbackWeather : "—");
+  const subEl = el("div", { class: "stat-tile-sub" }, city ? city.label : "");
   const tile = el("div", { class: "stat-tile" }, [
     el("div", { class: "stat-tile-label" }, "Weather"),
-    valueEl,
-    el("div", { class: "stat-tile-sub" }, city ? city.label : ""),
+    el("div", { class: "weather-row" }, [iconEl, valueEl]),
+    subEl,
   ]);
 
   if (city) {
     fetchLiveWeather(city.lat, city.lon).then((w) => {
-      if (w) valueEl.textContent = `${w.temp}°F${w.desc ? `, ${w.desc}` : ""}`;
+      if (!w) return;
+      iconEl.textContent = w.icon;
+      valueEl.textContent = `${w.tempF}°F / ${w.tempC}°C`;
+      subEl.textContent = w.desc ? `${w.desc} · ${city.label}` : city.label;
     });
   }
 
