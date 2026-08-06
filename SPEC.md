@@ -407,3 +407,17 @@ Daikin Park), and a local contact card (Austin — Deleigh Hermes).
   Structure" above for why auto-scan was explicitly deferred rather than
   built). Receipt photos stored in their own IndexedDB (`taylorUsa2026Receipts`),
   separate from Gallery, keyed one-per-expense.
+- Fixed the Budget tab icon — the original was a hand-drawn SVG path never
+  actually checked visually, and rendered malformed. Replaced with a
+  verified dollar-sign icon.
+- Added a render-time safety net: if a page's render function throws for
+  any reason, `render()` now shows a visible "Something went wrong" card
+  with a way back to Home, instead of silently leaving whatever was on
+  screen unchanged (which looks exactly like "tapping the tab did
+  nothing" — the actual symptom that surfaced this class of bug).
+- Hardened the service worker's install step: `cache.addAll()` is
+  all-or-nothing, so one blocked/failed precache (plausible on a
+  Cloudflare Access-gated domain, where a background fetch might not
+  carry the same auth context as a normal navigation) could silently fail
+  the *entire* offline cache setup. Now precaches each file independently
+  so one failure doesn't take the rest down with it.

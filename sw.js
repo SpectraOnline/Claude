@@ -5,7 +5,7 @@
 // so updates show up immediately instead of one reload behind. Cache is
 // only used as a fallback when there's genuinely no network (offline use
 // while travelling), not as the default source.
-const CACHE = "taylor-usa-2026-v5";
+const CACHE = "taylor-usa-2026-v6";
 const SHELL = [
   "./",
   "index.html",
@@ -19,7 +19,15 @@ const SHELL = [
 ];
 
 self.addEventListener("install", (event) => {
-  event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(SHELL)));
+  event.waitUntil(
+    caches.open(CACHE).then((cache) =>
+      // cache.addAll() is all-or-nothing - one blocked/failed resource (e.g.
+      // an access-gated asset) would otherwise fail the *entire* install,
+      // silently leaving no working offline cache at all. Precache each file
+      // independently instead, so one failure doesn't take down the rest.
+      Promise.all(SHELL.map((url) => cache.add(url).catch(() => {})))
+    )
+  );
   self.skipWaiting();
 });
 

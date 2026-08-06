@@ -1751,12 +1751,24 @@ function render() {
   let view;
 
   const leg = LEGS.find((l) => l.id === hash);
-  if (leg) {
-    view = renderLeg(leg);
-  } else if (ROUTES[hash]) {
-    view = ROUTES[hash]();
-  } else {
-    view = renderHome();
+  try {
+    if (leg) {
+      view = renderLeg(leg);
+    } else if (ROUTES[hash]) {
+      view = ROUTES[hash]();
+    } else {
+      view = renderHome();
+    }
+  } catch (e) {
+    // A broken page should never look like the tap did nothing - show a
+    // visible, recoverable error instead of silently leaving the old view up.
+    view = el("div", { class: "view" }, [
+      pageHeader("Something went wrong", "This page hit an error while loading."),
+      card([
+        el("p", { class: "note-text" }, String((e && e.message) || e)),
+        el("a", { href: "#home", class: "add-item-btn" }, "Back to Home"),
+      ]),
+    ]);
   }
 
   app.replaceChildren(view, buildFooter());
