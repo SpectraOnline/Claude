@@ -134,36 +134,50 @@ Miami's two legs don't duplicate this data.
 
 ### Home / Dashboard
 
-Quick-glance priority order, top to bottom, all before the leg list (mobile
-UX goal: everything below reachable with minimal scrolling):
+Quick-glance priority order, top to bottom, paired half-width where content
+allows (mobile UX goal: everything below reachable with minimal scrolling):
 
-1. **Current City** — the current leg's city if today falls within one,
-   otherwise the next upcoming leg's city.
-2. **Today's Schedule** — a plain-language one-liner: a dailySchedule
-   commitment today, an event happening today, check-in/check-out day, a
-   free day, or (pre-trip/post-trip) the countdown text.
-3. **Live Time Zones** — New Zealand, Miami (ET), Texas (CT), ticking every
-   30s. Uses `Intl`/`toLocaleTimeString` with real IANA zone names
+1. **Trip status + Weather** (half/half). Status is the existing live
+   countdown banner (`formatCountdown()`), just restyled to sit in a grid
+   cell (`.status-banner--tile`). Weather: live current temperature in
+   **both** °F and °C (one Open-Meteo call fetches Celsius, Fahrenheit is
+   derived from it, not a second API call), **humidity** (💧%), and a
+   WMO-weather-code emoji icon (`WMO_WEATHER_ICONS`) for the current city —
+   the city name lives in the tile's label ("Weather · Miami") to save a
+   line. Falls back silently to the static seasonal description
+   (`CITIES[...].fallbackWeather`, no icon/humidity) if offline or the
+   request fails/times out (6s `AbortController` timeout).
+2. **Current City + Today's Schedule** (half/half). Current City: the
+   current leg's city if today falls within one, otherwise the next
+   upcoming leg's city. Today's Schedule: a day/date subheading (NZ format,
+   e.g. "Thursday, 6 August") over a plain-language one-liner — a
+   dailySchedule commitment today, an event happening today, check-in/
+   check-out day, a free day, or (pre-trip/post-trip) the countdown text.
+   These two tiles are allowed to end up different heights (grid stretch
+   just leaves empty space in the shorter one) since Today's Schedule text
+   length varies day to day — not a bug.
+3. **Live Time Zones** (full width — see note below on why this and the
+   calculator aren't paired). New Zealand, Miami (ET), Texas (CT), ticking
+   every 30s. Uses `Intl`/`toLocaleTimeString` with real IANA zone names
    (`Pacific/Auckland`, `America/New_York`, `America/Chicago`) — **never**
    hardcode a UTC offset, since that breaks across daylight saving
    transitions. A small `+1d`/`-1d` badge shows when a zone's calendar date
    differs from home.
-4. **Tip & Sales Tax Calculator** — one card, two independent calculators.
-   Tip: bill amount + 15/18/20/25% quick buttons → tip amount + total. Sales
-   tax: purchase amount + an editable % field (defaults to the current
-   city's `salesTaxPct` from `CITIES`, e.g. 7% Miami vs 8.25% Texas) → tax
-   amount + total. Pure client-side, no persistence (deliberately — it's a
-   quick lookup tool, not trip data), no calls to `render()` on input so it
-   never disrupts the live clock or triggers a full re-render.
-5. **Weather** — live current temperature (°F and °C, both shown — one
-   Open-Meteo call fetches Celsius, Fahrenheit is derived from it, not a
-   second API call) + a WMO-weather-code emoji icon (`WMO_WEATHER_ICONS`)
-   + condition text, for the current city. Falls back silently to the
-   static seasonal description (`CITIES[...].fallbackWeather`, no icon) if
-   offline or the request fails/times out (6s `AbortController` timeout).
-6. **Next Accommodation** — current/next leg's property name + check-in.
-7. **Next Travel Event** — the next leg transition ("Move to {city}," next
-   start date), or a flight-home fallback once on the last leg.
+4. **Tip & Sales Tax Calculator** (full width — deliberately not paired
+   with Time Zones: the four tip quick-buttons need ~44px+ each to stay
+   comfortably tappable, and a half-width column doesn't have room for
+   that without shrinking them below the touch-target goal). One card, two
+   independent calculators. Tip: bill amount + 15/18/20/25% quick buttons →
+   tip amount + total. Sales tax: purchase amount + an editable % field
+   (defaults to the current city's `salesTaxPct` from `CITIES`, e.g. 7%
+   Miami vs 8.25% Texas) → tax amount + total. Pure client-side, no
+   persistence (deliberately — it's a quick lookup tool, not trip data), no
+   calls to `render()` on input so it never disrupts the live clock or
+   triggers a full re-render.
+5. **Next Accommodation + Next Travel Event** (half/half, unchanged from
+   before). Next Accommodation: current/next leg's property name +
+   check-in. Next Travel Event: the next leg transition ("Move to {city},"
+   next start date), or a flight-home fallback once on the last leg.
 
 Then: a compact "Trip Legs" grid (all four legs, current/next highlighted)
 as a full-itinerary overview. There is no separate "Trip Info" quick-link
@@ -360,3 +374,13 @@ Daikin Park), and a local contact card (Austin — Deleigh Hermes).
      means restructuring `js/app.js`. Storage key strings were
      deliberately left unchanged to avoid orphaning Taylor's already-saved
      packing/bucket/notes/photos/documents.
+- Added humidity and a weather-code emoji icon to the dashboard Weather
+  tile, alongside the existing dual °F/°C reading.
+- Added `_redirects`: the old `taylor-usa.netlify.app` link now force-
+  redirects to the Cloudflare Access-protected `taylor-usa.digitalcreative.app`,
+  which is now the canonical URL (see "Tech & Hosting").
+- Tightened the dashboard: paired Trip Status + Weather, and Current City +
+  Today's Schedule, into half-width rows; added a day/date (NZ format)
+  subheading to Today's Schedule. Time Zones and the Tip/Tax Calculator
+  stay full-width — halving the calculator's row would shrink its
+  tip-percentage buttons below a comfortable tap target.

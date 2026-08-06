@@ -505,6 +505,15 @@ function renderCurrentCityTile() {
   return renderStatTile("Current City", label, sub);
 }
 
+function renderTodayScheduleTile() {
+  const dayDate = today().toLocaleDateString("en-NZ", { weekday: "long", day: "numeric", month: "long" });
+  return el("div", { class: "stat-tile" }, [
+    el("div", { class: "stat-tile-label" }, "Today's Schedule"),
+    el("div", { class: "stat-tile-subheading" }, dayDate),
+    el("div", { class: "stat-tile-value stat-tile-value--sm" }, todaysScheduleText()),
+  ]);
+}
+
 // Live, DST-aware clocks: uses named IANA zones (not fixed UTC offsets) via
 // Intl, so daylight saving is handled automatically by the browser.
 const TZ_LIST = [
@@ -701,7 +710,7 @@ async function fetchLiveWeather(lat, lon) {
   const timer = setTimeout(() => controller.abort(), 6000);
   try {
     const res = await fetch(
-      `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code&timezone=auto`,
+      `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weather_code&timezone=auto`,
       { signal: controller.signal }
     );
     clearTimeout(timer);
@@ -712,6 +721,7 @@ async function fetchLiveWeather(lat, lon) {
     return {
       tempC: Math.round(tempC),
       tempF: Math.round((tempC * 9) / 5 + 32),
+      humidity: Math.round(data.current.relative_humidity_2m),
       desc: WMO_WEATHER_DESCRIPTIONS[code] || "",
       icon: WMO_WEATHER_ICONS[code] || "🌡️",
     };
@@ -721,14 +731,16 @@ async function fetchLiveWeather(lat, lon) {
   }
 }
 
+// Compact enough to sit half-width next to the trip-status banner; the city
+// name lives in the label (not a separate sub line) to save vertical space.
 function renderWeatherTile() {
   const leg = getCurrentOrNextLeg();
   const city = cityInfo(leg.location);
   const iconEl = el("span", { class: "weather-icon" }, "🌡️");
   const valueEl = el("span", { class: "stat-tile-value stat-tile-value--sm" }, city ? city.fallbackWeather : "—");
-  const subEl = el("div", { class: "stat-tile-sub" }, city ? city.label : "");
+  const subEl = el("div", { class: "stat-tile-sub" }, "");
   const tile = el("div", { class: "stat-tile" }, [
-    el("div", { class: "stat-tile-label" }, "Weather"),
+    el("div", { class: "stat-tile-label" }, city ? `Weather · ${city.label}` : "Weather"),
     el("div", { class: "weather-row" }, [iconEl, valueEl]),
     subEl,
   ]);
@@ -738,7 +750,10 @@ function renderWeatherTile() {
       if (!w) return;
       iconEl.textContent = w.icon;
       valueEl.textContent = `${w.tempF}°F / ${w.tempC}°C`;
-      subEl.textContent = w.desc ? `${w.desc} · ${city.label}` : city.label;
+      const bits = [];
+      if (w.desc) bits.push(w.desc);
+      if (w.humidity != null) bits.push(`💧${w.humidity}%`);
+      subEl.textContent = bits.join(" · ");
     });
   }
 
@@ -779,23 +794,18 @@ function renderHome() {
     pageHeader(TRIP.name, `${formatDateRange(TRIP.start, TRIP.end)} · Based in ${TRIP.base}`)
   );
 
-  const status = el("div", { class: "status-banner" }, formatCountdown());
-  wrap.append(status);
+  // Quick-glance priority order, paired half-width where content allows:
+  // trip status + weather, current city + today's schedule, then the two
+  // content-heavy widgets (time zones, tip/tax calculator) full-width so
+  // their touch targets stay comfortable, then next accommodation/event.
+  const statusTile = el("div", { class: "status-banner status-banner--tile" }, formatCountdown());
+  wrap.append(el("div", { class: "stat-grid" }, [statusTile, renderWeatherTile()]));
 
-  // Quick-glance priority order (exact): current city, today's schedule,
-  // live time zones, tip/tax calculator, weather, next accommodation, next
-  // travel event - all above the fold, before the full leg list.
-  wrap.append(renderCurrentCityTile());
-
-  wrap.append(
-    card([sectionHeadingInline("Today's Schedule"), el("p", { class: "about-text" }, todaysScheduleText())])
-  );
+  wrap.append(el("div", { class: "stat-grid" }, [renderCurrentCityTile(), renderTodayScheduleTile()]));
 
   wrap.append(renderTimeZonesCard());
 
   wrap.append(renderTipTaxCard());
-
-  wrap.append(renderWeatherTile());
 
   wrap.append(el("div", { class: "stat-grid" }, [renderNextAccommodationTile(), renderNextTravelEventTile()]));
 
