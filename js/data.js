@@ -395,6 +395,8 @@ const TRIPS = {
       { key: "boardingPasses", label: "Boarding Passes" },
       { key: "seatNumbers", label: "Seat Numbers (if available)" },
     ],
+
+    budgetCategories: ["Accommodation", "Food & Drinks", "Activities", "Shopping", "Transport", "Other"],
   },
 };
 
@@ -410,3 +412,4 @@ const USEFUL_INFO = ACTIVE_TRIP.usefulInfo;
 const BUCKET_LIST = ACTIVE_TRIP.bucketList;
 const FLIGHTS = ACTIVE_TRIP.flights;
 const FLIGHT_FIELD_DEFS = ACTIVE_TRIP.flightFieldDefs;
+const BUDGET_CATEGORIES = ACTIVE_TRIP.budgetCategories;

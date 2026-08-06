@@ -944,6 +944,96 @@ main {
 }
 .lightbox-delete:disabled { opacity: 0.6; }
 
+/* Budget */
+
+.budget-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-weight: 700;
+  font-size: 16px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 2px;
+}
+.budget-total-amount { color: var(--accent); font-size: 22px; }
+.budget-summary-rows { display: flex; flex-direction: column; gap: 7px; }
+.budget-summary-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  color: var(--muted);
+}
+.budget-summary-amount { font-weight: 600; color: var(--text); }
+
+.budget-form { display: flex; flex-direction: column; gap: 10px; }
+.budget-select {
+  font-family: inherit;
+  font-size: 16px;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 11px 12px;
+  min-height: 44px;
+  width: 100%;
+}
+.budget-photo-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.budget-photo-btn {
+  display: inline-flex;
+  align-items: center;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+  border: 1px dashed var(--border);
+  background: none;
+  border-radius: 999px;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+.budget-photo-name {
+  font-size: 12px;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 140px;
+}
+.budget-submit-btn { width: 100%; text-align: center; min-height: 44px; }
+
+.budget-list { display: flex; flex-direction: column; }
+.budget-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 4px;
+  border-bottom: 1px solid var(--border);
+}
+.budget-row:last-child { border-bottom: none; }
+.budget-row-info { flex: 1; min-width: 0; }
+.budget-row-top { display: flex; justify-content: space-between; gap: 8px; }
+.budget-row-category { font-weight: 600; font-size: 14px; }
+.budget-row-amount { font-weight: 700; color: var(--accent); font-size: 14px; flex-shrink: 0; }
+.budget-row-sub {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.budget-receipt-btn {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 6px;
+}
+.budget-receipt-btn:active { opacity: 0.65; }
+
 /* Empty state (flights) */
 
 .empty-state-text {

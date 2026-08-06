@@ -7,6 +7,7 @@ const STORAGE_KEYS = {
   bucket: "taylorUsa2026.bucket",
   bucketCustom: "taylorUsa2026.bucketCustom",
   notes: "taylorUsa2026.notes",
+  budget: "taylorUsa2026.budget",
 };
 
 const app = document.getElementById("app");
@@ -194,6 +195,67 @@ let docObjectUrls = [];
 function revokeDocUrls() {
   docObjectUrls.forEach((u) => URL.revokeObjectURL(u));
   docObjectUrls = [];
+}
+
+// ---------- Receipt photo storage (IndexedDB — Budget's optional attachments) ----------
+// Same one-per-key pattern as documents above, keyed by expense id instead
+// of a fixed slot name, since there can be many expenses.
+
+const RECEIPTS_DB = "taylorUsa2026Receipts";
+const RECEIPTS_STORE = "receipts";
+
+function openReceiptsDb() {
+  return new Promise((resolve, reject) => {
+    if (!("indexedDB" in window)) {
+      reject(new Error("IndexedDB unavailable"));
+      return;
+    }
+    const req = indexedDB.open(RECEIPTS_DB, 1);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains(RECEIPTS_STORE)) {
+        db.createObjectStore(RECEIPTS_STORE, { keyPath: "expenseId" });
+      }
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function setReceiptPhoto(expenseId, blob) {
+  const db = await openReceiptsDb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(RECEIPTS_STORE, "readwrite");
+    tx.objectStore(RECEIPTS_STORE).put({ expenseId, blob });
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+async function getReceiptPhoto(expenseId) {
+  const db = await openReceiptsDb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(RECEIPTS_STORE, "readonly");
+    const req = tx.objectStore(RECEIPTS_STORE).get(expenseId);
+    req.onsuccess = () => resolve(req.result || null);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function deleteReceiptPhoto(expenseId) {
+  const db = await openReceiptsDb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(RECEIPTS_STORE, "readwrite");
+    tx.objectStore(RECEIPTS_STORE).delete(expenseId);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+let receiptObjectUrls = [];
+function revokeReceiptUrls() {
+  receiptObjectUrls.forEach((u) => URL.revokeObjectURL(u));
+  receiptObjectUrls = [];
 }
 
 // Renders an upload/view/replace/remove control for one document slot.
@@ -1487,6 +1549,182 @@ function renderGallery() {
   return wrap;
 }
 
+// ---------- Budget ----------
+
+function formatMoney(n) {
+  return `$${n.toFixed(2)}`;
+}
+
+function renderBudgetSummary(expenses) {
+  const total = expenses.reduce((sum, e) => sum + e.amount, 0);
+  const rows = BUDGET_CATEGORIES.map((cat) => {
+    const catTotal = expenses.filter((e) => e.category === cat).reduce((sum, e) => sum + e.amount, 0);
+    return el("div", { class: "budget-summary-row" }, [
+      el("span", {}, cat),
+      el("span", { class: "budget-summary-amount" }, formatMoney(catTotal)),
+    ]);
+  });
+  return card([
+    sectionHeadingInline("Summary"),
+    el("div", { class: "budget-total" }, [
+      el("span", {}, "Total spent"),
+      el("span", { class: "budget-total-amount" }, formatMoney(total)),
+    ]),
+    el("div", { class: "budget-summary-rows" }, rows),
+  ]);
+}
+
+function renderExpenseForm() {
+  const amountInput = el("input", {
+    type: "number",
+    inputmode: "decimal",
+    class: "calc-input",
+    placeholder: "Amount ($)",
+    min: "0",
+    step: "0.01",
+  });
+  const categorySelect = el(
+    "select",
+    { class: "budget-select" },
+    BUDGET_CATEGORIES.map((c) => el("option", { value: c }, c))
+  );
+  const descInput = el("input", {
+    type: "text",
+    class: "calc-input",
+    placeholder: "Description (optional)",
+    maxlength: "80",
+  });
+  const dateInput = el("input", { type: "date", class: "calc-input", value: isoDateStr(today()) });
+  const fileInput = el("input", { type: "file", accept: "image/*", class: "gallery-file-input" });
+  const fileNameEl = el("span", { class: "budget-photo-name" }, "");
+  const fileLabel = el("label", { class: "budget-photo-btn" }, ["📷 Attach receipt photo (optional)", fileInput]);
+  const statusEl = el("p", { class: "note-text" }, "");
+
+  fileInput.addEventListener("change", () => {
+    const file = fileInput.files && fileInput.files[0];
+    fileNameEl.textContent = file ? file.name : "";
+  });
+
+  const form = el("form", { class: "budget-form" }, [
+    amountInput,
+    categorySelect,
+    descInput,
+    dateInput,
+    el("div", { class: "budget-photo-row" }, [fileLabel, fileNameEl]),
+    el("button", { type: "submit", class: "add-item-btn budget-submit-btn" }, "Add Expense"),
+    statusEl,
+  ]);
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const amount = parseFloat(amountInput.value);
+    if (!amount || amount <= 0) {
+      statusEl.textContent = "Enter an amount first.";
+      return;
+    }
+    const expense = {
+      id: `e${Date.now()}${Math.random().toString(36).slice(2, 8)}`,
+      amount,
+      category: categorySelect.value,
+      description: descInput.value.trim(),
+      date: dateInput.value || isoDateStr(today()),
+      hasReceipt: false,
+    };
+    const file = fileInput.files && fileInput.files[0];
+    if (file) {
+      statusEl.textContent = "Saving…";
+      try {
+        const blob = await compressImageFile(file);
+        await setReceiptPhoto(expense.id, blob);
+        expense.hasReceipt = true;
+      } catch (err) {
+        // Photo failed to save - still save the expense itself.
+      }
+    }
+    const expenses = loadState(STORAGE_KEYS.budget, []);
+    expenses.push(expense);
+    saveState(STORAGE_KEYS.budget, expenses);
+    render();
+  });
+
+  return card([sectionHeadingInline("Add Expense"), form]);
+}
+
+function renderExpenseList(expenses) {
+  if (!expenses.length) {
+    return card([sectionHeadingInline("Expenses"), el("p", { class: "note-text" }, "No expenses logged yet.")]);
+  }
+
+  const sorted = [...expenses].sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
+  const list = el("div", { class: "budget-list" });
+
+  sorted.forEach((exp) => {
+    const subBits = [exp.description, formatShortDate(exp.date)].filter(Boolean);
+    const row = el("div", { class: "budget-row" }, [
+      el("div", { class: "budget-row-info" }, [
+        el("div", { class: "budget-row-top" }, [
+          el("span", { class: "budget-row-category" }, exp.category),
+          el("span", { class: "budget-row-amount" }, formatMoney(exp.amount)),
+        ]),
+        el("div", { class: "budget-row-sub" }, subBits.join(" · ")),
+      ]),
+    ]);
+
+    if (exp.hasReceipt) {
+      const thumbBtn = el(
+        "button",
+        { class: "budget-receipt-btn", type: "button", "aria-label": "View receipt photo" },
+        "🧾"
+      );
+      thumbBtn.addEventListener("click", async () => {
+        const rec = await getReceiptPhoto(exp.id);
+        if (!rec) return;
+        const url = URL.createObjectURL(rec.blob);
+        receiptObjectUrls.push(url);
+        openLightbox(url, async () => {
+          await deleteReceiptPhoto(exp.id);
+          const all = loadState(STORAGE_KEYS.budget, []).map((e) =>
+            e.id === exp.id ? { ...e, hasReceipt: false } : e
+          );
+          saveState(STORAGE_KEYS.budget, all);
+          render();
+        });
+      });
+      row.append(thumbBtn);
+    }
+
+    const delBtn = el(
+      "button",
+      { class: "checklist-delete budget-row-delete", type: "button", "aria-label": "Remove expense" },
+      "×"
+    );
+    delBtn.addEventListener("click", async () => {
+      const remaining = loadState(STORAGE_KEYS.budget, []).filter((e) => e.id !== exp.id);
+      saveState(STORAGE_KEYS.budget, remaining);
+      if (exp.hasReceipt) await deleteReceiptPhoto(exp.id);
+      render();
+    });
+    row.append(delBtn);
+
+    list.append(row);
+  });
+
+  return card([sectionHeadingInline("Expenses"), list]);
+}
+
+function renderBudget() {
+  const wrap = el("div", { class: "view" });
+  wrap.append(pageHeader("Budget", "Track spending across the trip."));
+
+  const expenses = loadState(STORAGE_KEYS.budget, []);
+
+  wrap.append(renderBudgetSummary(expenses));
+  wrap.append(renderExpenseForm());
+  wrap.append(renderExpenseList(expenses));
+
+  return wrap;
+}
+
 // ---------- Routing ----------
 
 const ROUTES = {
@@ -1496,6 +1734,7 @@ const ROUTES = {
   bucket: renderBucket,
   flights: renderFlights,
   gallery: renderGallery,
+  budget: renderBudget,
 };
 
 function buildFooter() {
@@ -1505,6 +1744,7 @@ function buildFooter() {
 function render() {
   closeLightbox();
   revokeDocUrls();
+  revokeReceiptUrls();
   stopClock();
   const hash = (location.hash || "#home").slice(1);
   if (hash !== "gallery") revokeGalleryUrls();
@@ -1525,7 +1765,7 @@ function render() {
   updateActiveLink(hash);
 }
 
-const PRIMARY_TAB_ROUTES = ["home", "packing", "bucket", "gallery"];
+const PRIMARY_TAB_ROUTES = ["home", "packing", "budget", "bucket", "gallery"];
 
 function updateActiveLink(hash) {
   document.querySelectorAll(".drawer-link").forEach((link) => {

@@ -252,6 +252,24 @@ Daikin Park), and a local contact card (Austin — Deleigh Hermes).
   before being stored as Blobs in IndexedDB (`taylorUsa2026Gallery`) —
   localStorage's ~5-10MB limit can't hold photos, IndexedDB can. Tap a
   thumbnail for a full-screen lightbox with delete.
+- **Budget** — manual expense tracking, categorized (`BUDGET_CATEGORIES` in
+  `js/data.js`: Accommodation, Food & Drinks, Activities, Shopping,
+  Transport, Other). A summary card shows total spent + per-category
+  totals; an add-expense form takes amount, category, optional description,
+  date (defaults to today), and an **optional** receipt photo; the expense
+  list shows every entry with a delete (×) and, if a photo was attached, a
+  🧾 button opening it in the same lightbox the Gallery uses. Expense
+  records (amount/category/description/date) live in localStorage
+  (`taylorUsa2026.budget`); receipt photos are compressed the same way as
+  Gallery photos and stored separately in IndexedDB
+  (`taylorUsa2026Receipts`, one per expense id) since they don't fit in
+  localStorage. **Deliberately no OCR/auto-scan-the-amount** — discussed
+  and explicitly deferred: on-device OCR (e.g. Tesseract.js) would add
+  several MB and still misread which line on a receipt is the total,
+  requiring Taylor to double-check anyway; a receipt-specialized cloud API
+  would need a backend to keep its key secret, which breaks the no-server
+  design this whole app has kept to. Revisit only if manual entry proves
+  genuinely annoying in practice.
 
 ## Known Data Gaps (do not fill with invented data)
 
@@ -384,3 +402,8 @@ Daikin Park), and a local contact card (Austin — Deleigh Hermes).
   subheading to Today's Schedule. Time Zones and the Tip/Tax Calculator
   stay full-width — halving the calculator's row would shrink its
   tip-percentage buttons below a comfortable tap target.
+- Added a Budget page (new bottom tab): categorized manual expense
+  tracking with an optional receipt photo per entry, no OCR (see "App
+  Structure" above for why auto-scan was explicitly deferred rather than
+  built). Receipt photos stored in their own IndexedDB (`taylorUsa2026Receipts`),
+  separate from Gallery, keyed one-per-expense.
