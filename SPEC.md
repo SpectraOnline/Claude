@@ -539,3 +539,10 @@ from scratch in eight months.
 - Added the missing `placeGroups` panels (nearby attractions, dining,
   shopping) to the Austin leg. Only Miami had them; the rendering was
   already generic, so this was content-only.
+- Added `placeGroups` to the Houston leg, weighted to walkable downtown
+  rather than a comprehensive city list: the stay is one night (in 3pm
+  Saturday with a 6:10pm ballgame, out noon Sunday), so anything needing
+  half a day would be noise. Space Center Houston is listed with its real
+  30-minute drive time precisely so it can be ruled out at a glance. The
+  Miami return leg is deliberately left without panels — it's an airport
+  hotel the night before a flight, where a list of attractions has no use.

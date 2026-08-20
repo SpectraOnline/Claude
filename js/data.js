@@ -260,6 +260,48 @@ const TRIPS = {
             "Masked in source data. Taylor should carry the full confirmation number separately (Expedia app/email).",
           confirmationPdf: "docs/houston-booking.pdf",
         },
+        placeGroups: [
+          {
+            heading: "Nearby attractions",
+            places: [
+              { name: "Discovery Green", time: "3 min" },
+              { name: "Daikin Park", time: "4 min" },
+              { name: "Toyota Center", time: "4 min" },
+              { name: "Market Square Park", time: "5 min" },
+              { name: "Downtown Aquarium", time: "7 min" },
+              { name: "Buffalo Bayou Park", time: "9 min" },
+              { name: "Houston Museum of Natural Science", time: "12 min" },
+              { name: "Museum of Fine Arts, Houston", time: "13 min" },
+              { name: "Hermann Park", time: "14 min" },
+              { name: "Space Center Houston", time: "30 min" },
+            ],
+          },
+          {
+            heading: "Nearby dining",
+            places: [
+              { name: "Xochi", time: "2 min" },
+              { name: "Guard and Grace", time: "3 min" },
+              { name: "Potente", time: "4 min" },
+              { name: "The Rustic", time: "5 min" },
+              { name: "Phoenicia Specialty Foods", time: "5 min" },
+              { name: "Brennan's of Houston", time: "8 min" },
+              { name: "The Original Ninfa's on Navigation", time: "9 min" },
+              { name: "Truth BBQ", time: "10 min" },
+              { name: "Pappas Bros. Steakhouse", time: "13 min" },
+            ],
+          },
+          {
+            heading: "Nearby shopping & activities",
+            places: [
+              { name: "GreenStreet", time: "3 min" },
+              { name: "POST Houston", time: "6 min" },
+              { name: "Bayou City Adventures (kayak hire)", time: "9 min" },
+              { name: "Sawyer Yards", time: "10 min" },
+              { name: "Houston Farmers Market", time: "12 min" },
+              { name: "The Galleria", time: "17 min" },
+            ],
+          },
+        ],
         eventFlag: {
           name: "Athletics @ Astros",
           dates: "Saturday 22 August, 6:10 PM CT",
