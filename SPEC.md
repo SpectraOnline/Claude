@@ -567,3 +567,38 @@ from scratch in eight months.
   live FX API would add an outbound call that fails exactly when it's needed
   — no signal, overseas. Entered once, it works offline for the whole trip.
   Result shows `US$1 ≈ NZ$x` as soon as a rate is set, before any amount.
+
+### Beta lessons, continued (added during the trip)
+
+- **The app lost to the group chat.** The single most valuable finding of
+  the beta: Taylor didn't avoid the app, he simply never had a reason to
+  open it in the moment. He reached the second-to-last leg without using
+  the budget tab, and without having refreshed since he left. An app that
+  waits to be remembered will lose to whatever people already have open.
+  The fix for 2027 is not more features — it's giving it a reason to be
+  opened: something that changes daily, or that someone else is waiting on.
+  Adding features to an app nobody opens compounds the problem.
+- **Features that need setup before they do anything won't get used.** The
+  currency converter needs a rate typed in once before it shows anything.
+  That is the honest design (see above), but it means someone has to be
+  *told*. Anything with an empty initial state needs either a sensible
+  default or an explicit prompt, or it reads as broken and gets written off.
+- **Deploys don't reach installed users on their own.** iOS suspends
+  home-screen apps rather than closing them, so reopening resumes the old
+  page with no fetch. Taylor sat on a build predating the budget tab for
+  days. Network-first caching is necessary but not sufficient — the app
+  needs a visible way to refresh (now in the drawer), and someone has to
+  know to use it.
+- **In-app browsers break Google login.** The link was shared over
+  Messenger, whose embedded browser Google blocks for OAuth: sign-in fails
+  with a generic "Something went wrong" that looks like a broken app.
+  Anywhere a login link gets shared through a chat app, expect this, and
+  tell people to open it in a real browser.
+- **Device-local storage is a real data-loss risk, not a theoretical one.**
+  Deleting the home-screen app, or Safari's "Clear History and Website
+  Data", destroys every photo, expense and ticked item, with no server copy
+  to restore from. Both pages holding user content now say so plainly, and
+  the app requests persistent storage on load. Neither is a backup. If the
+  2027 app is going to hold anything people would be upset to lose, it
+  needs an actual export or sync path — decided up front, per the
+  shared-vs-device-local decision above.

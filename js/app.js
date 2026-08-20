@@ -1583,6 +1583,7 @@ function renderGallery() {
 
   wrap.append(card([addBtn, status]));
   wrap.append(grid);
+  wrap.append(deviceStorageNote("Photos"));
 
   async function loadPhotos() {
     revokeGalleryUrls();
@@ -1797,6 +1798,20 @@ function renderExpenseList(expenses) {
   return card([sectionHeadingInline("Expenses"), list]);
 }
 
+// Shown on the two pages that hold irreplaceable user content. There is no
+// server copy of any of it, so the failure modes worth naming are the ones
+// people actually hit: deleting the home-screen app, and "Clear History and
+// Website Data" in Safari settings.
+function deviceStorageNote(what) {
+  return card([
+    el("p", { class: "note-text" }, [
+      el("strong", {}, "Saved on this phone only. "),
+      `${what} aren't backed up anywhere. Deleting this app from your home screen, ` +
+        "or clearing your browser's website data, deletes them for good.",
+    ]),
+  ]);
+}
+
 function renderBudget() {
   const wrap = el("div", { class: "view" });
   wrap.append(pageHeader("Budget", "Track spending across the trip."));
@@ -1806,6 +1821,7 @@ function renderBudget() {
   wrap.append(renderBudgetSummary(expenses));
   wrap.append(renderExpenseForm());
   wrap.append(renderExpenseList(expenses));
+  wrap.append(deviceStorageNote("Expenses and receipt photos"));
 
   return wrap;
 }
@@ -1952,6 +1968,17 @@ window.addEventListener("hashchange", () => {
   render();
 });
 window.addEventListener("DOMContentLoaded", render);
+
+// Ask the browser to treat this origin's storage as persistent. Without it,
+// photos and budget entries are "best effort" and can be evicted when the
+// device runs low on space. Safari grants this based on its own heuristics
+// (being installed to the home screen helps), so it may be declined - it's a
+// request, not a guarantee, and nothing depends on the outcome.
+if (navigator.storage && navigator.storage.persist) {
+  navigator.storage.persisted().then((already) => {
+    if (!already) navigator.storage.persist().catch(() => {});
+  }).catch(() => {});
+}
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
