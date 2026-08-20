@@ -528,3 +528,14 @@ from scratch in eight months.
   v1.1 data-model work), the USA-specific features that won't transfer, and
   the lessons the beta actually surfaced. Written now rather than in eight
   months, while the reasoning is still fresh.
+- Added a header back button and a scroll-to-top button. Installed to the
+  home screen the app runs in `display: standalone`, so there is no browser
+  chrome and no browser back button — a leg page could previously only be
+  left via the tab bar. Back appears only on routes the tab bar cannot
+  return from (legs, Useful Information, Flights), and steps through real
+  history rather than jumping Home, falling back to Home when there is no
+  in-app history to pop (deep link or refresh). Scroll-to-top appears past
+  320px and sits clear of the tab bar and the iOS home indicator.
+- Added the missing `placeGroups` panels (nearby attractions, dining,
+  shopping) to the Austin leg. Only Miami had them; the rendering was
+  already generic, so this was content-only.

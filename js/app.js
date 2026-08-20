@@ -14,6 +14,8 @@ const app = document.getElementById("app");
 const drawer = document.getElementById("drawer");
 const overlay = document.getElementById("overlay");
 const menuBtn = document.getElementById("menuBtn");
+const backBtn = document.getElementById("backBtn");
+const topBtn = document.getElementById("topBtn");
 
 // Transient (not persisted) — which note fields currently show their textarea.
 const editingNotes = new Set();
@@ -1773,9 +1775,45 @@ function render() {
 
   app.replaceChildren(view, buildFooter());
   window.scrollTo(0, 0);
+  updateTopBtn();
   closeDrawer();
   updateActiveLink(hash);
 }
+
+// ---------- Back / scroll-to-top ----------
+//
+// Installed to the home screen the app runs in `display: standalone`, so
+// there is no browser chrome and no browser back button at all. Without
+// these, a leg page can only be left via the tab bar.
+
+// Net in-app navigation depth, so Back never steps out of the app when
+// someone opened a leg link directly. `goingBack` stops our own
+// history.back() from being counted as a forward navigation.
+let navDepth = 0;
+let goingBack = false;
+
+const TOP_BTN_AT = 320;
+
+function updateTopBtn() {
+  topBtn.hidden = window.scrollY < TOP_BTN_AT;
+}
+
+backBtn.addEventListener("click", () => {
+  if (navDepth > 0) {
+    goingBack = true;
+    history.back();
+  } else {
+    // Arrived here cold (deep link, refresh, or restored session) - there is
+    // no in-app history to pop, so Home is the sane destination.
+    location.hash = "#home";
+  }
+});
+
+topBtn.addEventListener("click", () => {
+  window.scrollTo({ top: 0, behavior: "smooth" });
+});
+
+window.addEventListener("scroll", updateTopBtn, { passive: true });
 
 const PRIMARY_TAB_ROUTES = ["home", "packing", "budget", "bucket", "gallery"];
 
@@ -1788,6 +1826,9 @@ function updateActiveLink(hash) {
     link.classList.toggle("tab-link--active", link.dataset.route === hash);
   });
   menuBtn.classList.toggle("tab-link--active", !PRIMARY_TAB_ROUTES.includes(hash));
+  // Only shown on pages the tab bar can't get you back from (legs, Useful
+  // Information, Flights). On a primary tab the tab bar already is the way out.
+  backBtn.hidden = PRIMARY_TAB_ROUTES.includes(hash);
 }
 
 // ---------- Drawer ----------
@@ -1810,7 +1851,15 @@ menuBtn.addEventListener("click", () => {
 });
 overlay.addEventListener("click", closeDrawer);
 
-window.addEventListener("hashchange", render);
+window.addEventListener("hashchange", () => {
+  if (goingBack) {
+    goingBack = false;
+    navDepth = Math.max(0, navDepth - 1);
+  } else {
+    navDepth++;
+  }
+  render();
+});
 window.addEventListener("DOMContentLoaded", render);
 
 if ("serviceWorker" in navigator) {

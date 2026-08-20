@@ -5,7 +5,7 @@
 // so updates show up immediately instead of one reload behind. Cache is
 // only used as a fallback when there's genuinely no network (offline use
 // while travelling), not as the default source.
-const CACHE = "taylor-usa-2026-v6";
+const CACHE = "taylor-usa-2026-v7";
 const SHELL = [
   "./",
   "index.html",
