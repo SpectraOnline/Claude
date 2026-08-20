@@ -356,6 +356,78 @@ Daikin Park), and a local contact card (Austin — Deleigh Hermes).
 
 ---
 
+## Next Trip: Philippines, April 2027 (not started)
+
+The USA 2026 build was explicitly treated as a beta test for this. Nothing
+here is built yet — this section exists so the reasoning isn't re-derived
+from scratch in eight months.
+
+### What carries over for free
+
+- The whole rendering/routing layer in `js/app.js`. It reads
+  `TRIPS[CURRENT_TRIP_ID]` via the compatibility consts and never touches
+  trip content directly, so a second trip is a new entry in `TRIPS` plus a
+  changed `CURRENT_TRIP_ID` — see "Data Model" above.
+- The design system, the offline app-shell service worker, the Netlify +
+  custom-domain hosting pattern, and the Cloudflare Access/Google login
+  setup (documented in "Tech & Hosting" — reuse the same Zero Trust org,
+  just add an Access application for the new hostname).
+
+### Decisions to make before anything is built
+
+1. **Shared state, or device-local like now?** This is the only decision
+   that cannot be bolted on later, so settle it first. Everything today is
+   `localStorage`/`IndexedDB` on one device with no server, no sync and no
+   accounts — ideal for a single traveller's phone. If several people are
+   travelling together and want a *shared* packing list, a shared gallery,
+   or a budget that totals across people, that is a different application
+   with a backend, and it invalidates the "Data & Access Rules" section
+   above rather than extending it. Decide who the app is for before
+   designing anything.
+2. **Per-trip storage namespacing.** "Data Model" above deliberately
+   deferred this: `STORAGE_KEYS` in `js/app.js` are hardcoded
+   `taylorUsa2026*` literals rather than derived from the trip id, to avoid
+   orphaning a returning visitor's saved data. A second trip forces the
+   issue — the Philippines packing list, gallery and budget must be
+   independent of the USA ones. Namespace the keys by trip id, and migrate
+   (don't drop) the existing USA data.
+
+### Content/feature changes this trip specifically needs
+
+- **The tip/tax calculator does not transfer.** It is built around US sales
+  tax added at the till and US tipping norms. Philippine pricing is
+  generally VAT-inclusive and tipping conventions differ, so this needs
+  redesigning or removing, not re-pointing at a new tax rate.
+- **Currency conversion (NZD⇄PHP) is a real feature here**, and its absence
+  was arguably a gap on the USA trip too. Note the "no backend" and offline
+  constraints: a hardcoded rate set at build time, clearly labelled as
+  approximate, may beat a live API that fails when there's no signal.
+- **`CITIES` needs rebuilding** — zone, lat/lon and fallback weather per
+  Philippine location. `salesTaxPct` is USA-specific and should follow the
+  calculator's fate.
+- **Offline matters more.** Island-hopping, ferries and roaming gaps make
+  patchy connectivity the norm rather than the exception. Weight decisions
+  toward bundled-and-cached over fetched.
+- **Confirm whether the "Neutral Language" rule applies to this trip**
+  before any content is written. It was a hard requirement for USA 2026;
+  do not assume either way for 2027, and ask rather than guess.
+
+### Lessons from the beta
+
+- **The app has two audiences, and only one was designed for.** It was
+  built for the traveller, but ended up shared with family following along
+  — who log in and see an empty gallery, an unticked packing list and a
+  zeroed budget, because all of that is stored on the traveller's own
+  device. It looks broken when it is working exactly as designed. Either
+  give viewers an honest empty state that explains this, or decide (per
+  decision 1) that following along is a real use case and build for it.
+- **Testing the login gate needs the real URL in a private window** — see
+  "Tech & Hosting". Time was lost to a login that appeared to work but only
+  ever returned to the Cloudflare dashboard.
+- **Capture friction while the trip is live.** What the traveller couldn't
+  find, wanted and didn't have, or found annoying, is only observable in
+  the field and is unrecoverable afterwards.
+
 ## Change Log
 
 - **v1.0** — Initial build: home dashboard, four leg pages, packing list,
@@ -449,3 +521,10 @@ Daikin Park), and a local contact card (Austin — Deleigh Hermes).
   procedure. Also corrected the allow-list description, which still claimed
   only two people had access; it now points at the dashboard policy as the
   source of truth rather than restating a list that keeps changing.
+- Added a "Next Trip: Philippines, April 2027" section. The USA build was
+  treated as a beta test for it, so this captures what carries over, the two
+  decisions that must be made before building (shared vs device-local state,
+  and per-trip storage namespacing — the latter explicitly deferred by the
+  v1.1 data-model work), the USA-specific features that won't transfer, and
+  the lessons the beta actually surfaced. Written now rather than in eight
+  months, while the reasoning is still fresh.
