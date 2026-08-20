@@ -43,13 +43,34 @@ business. Concretely:
   on every push. Build command: none. Publish directory: repo root.
 - **Canonical URL: `https://taylor-usa.digitalcreative.app`** — a custom
   domain in front of the same Netlify site, gated by Cloudflare Access to
-  only Anna's and Taylor's email addresses. This is the link to share/use.
+  an explicit list of family email addresses — a single Allow policy with
+  one "Emails" Include rule, added to as more family want to follow along.
+  The dashboard policy is the source of truth for who's on it; don't
+  restate the list here, it only goes stale. This is the link to share/use.
   The original `taylor-usa.netlify.app` still exists (Netlify always keeps
   the auto-generated subdomain alongside any custom domain) but is **not**
   behind Cloudflare Access, so `_redirects` at the repo root force-redirects
   it (301) to the custom domain — otherwise it'd be a standing way to
   bypass the login gate entirely. If the custom domain or its Cloudflare
   Access setup ever changes, update `_redirects` to match.
+- Access login methods: **Google** (so the Gmail users get a one-tap sign-in)
+  and **Cloudflare** (kept deliberately as a fallback — if the Google OAuth
+  client ever breaks, it's the way back into the account). Google is wired
+  up via a "Web application" OAuth client in the Google Cloud Console, whose
+  authorised redirect URI **must** be
+  `https://<team-name>.cloudflareaccess.com/cdn-cgi/access/callback`.
+  That `<team-name>` is the Zero Trust team name (Zero Trust > Settings >
+  General), so **renaming the team silently breaks Google login** with
+  `redirect_uri_mismatch`. To rename safely: add the new URI in the Google
+  console *first* (a client can hold several), then rename, then test, then
+  delete the old URI. Note the Google console warns changes can take minutes
+  to hours to propagate — a mismatch error straight after a rename is
+  usually lag, not misconfiguration.
+- Testing the login gate: use the canonical URL in a private window. Signing
+  in from inside the Cloudflare dashboard — the identity provider's **Test**
+  button, or the `<team-name>.cloudflareaccess.com` App Launcher — only ever
+  proves the IdP works and returns you to the dashboard; it never reaches
+  the app. A private window also sidesteps `sw.js` serving a cached copy.
 - The only outbound network calls the app ever makes are to Open-Meteo (live
   weather, keyless/CORS-friendly) and Google Maps (opening directions in a
   new tab). Both fail quietly to a static fallback if unreachable — the app
@@ -421,3 +442,10 @@ Daikin Park), and a local contact card (Austin — Deleigh Hermes).
   carry the same auth context as a normal navigation) could silently fail
   the *entire* offline cache setup. Now precaches each file independently
   so one failure doesn't take the rest down with it.
+- Documented the Cloudflare Access auth setup properly: added Google as a
+  login method alongside Cloudflare (family members sign in with Gmail in
+  one tap rather than the old two-step "Cloudflare, then Google" detour),
+  and wrote down the team-name/redirect-URI coupling plus the safe rename
+  procedure. Also corrected the allow-list description, which still claimed
+  only two people had access; it now points at the dashboard policy as the
+  source of truth rather than restating a list that keeps changing.
