@@ -556,3 +556,14 @@ from scratch in eight months.
   as per-application logout isn't offered. The service worker now skips
   `/cdn-cgi/*` entirely — caching or offline-serving an auth response would
   break sign-out in ways that are near-impossible to diagnose from a phone.
+- Made the home dashboard's **Current City** and **Today's Schedule** tiles
+  tap through to the current leg's page, with a chevron on each so the
+  affordance is visible — they follow `getCurrentOrNextLeg()`, so they
+  always point at wherever Taylor actually is.
+- Added a **USD to NZD** section to the calculator card (now "Tip, Tax &
+  Currency"). The rate is entered by hand and remembered in
+  `STORAGE_KEYS.fxRate`, deliberately not hardcoded or fetched: a built-in
+  rate would be invented data that looks real and goes stale silently, and a
+  live FX API would add an outbound call that fails exactly when it's needed
+  — no signal, overseas. Entered once, it works offline for the whole trip.
+  Result shows `US$1 ≈ NZ$x` as soon as a rate is set, before any amount.

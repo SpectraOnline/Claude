@@ -8,6 +8,7 @@ const STORAGE_KEYS = {
   bucketCustom: "taylorUsa2026.bucketCustom",
   notes: "taylorUsa2026.notes",
   budget: "taylorUsa2026.budget",
+  fxRate: "taylorUsa2026.fxRate",
 };
 
 const app = document.getElementById("app");
@@ -553,12 +554,33 @@ function pageHeader(title, subtitle) {
 
 // ---------- Home: dashboard widgets ----------
 
-function renderStatTile(label, value, sub, small) {
-  return el("div", { class: "stat-tile" }, [
-    el("div", { class: "stat-tile-label" }, label),
+function chevronIcon() {
+  return el("span", {
+    class: "tile-chevron",
+    "aria-hidden": "true",
+    html:
+      '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>',
+  });
+}
+
+// `href` turns the tile into a link to a leg page. The label row becomes a
+// flex row with a chevron so it's visibly tappable — an unmarked tile that
+// happens to navigate is worse than one that doesn't.
+function renderStatTile(label, value, sub, small, href) {
+  const labelRow = href
+    ? el("div", { class: "stat-tile-label stat-tile-label--link" }, [
+        el("span", {}, label),
+        chevronIcon(),
+      ])
+    : el("div", { class: "stat-tile-label" }, label);
+  const children = [
+    labelRow,
     el("div", { class: `stat-tile-value${small ? " stat-tile-value--sm" : ""}` }, value),
     sub ? el("div", { class: "stat-tile-sub" }, sub) : null,
-  ]);
+  ];
+  return href
+    ? el("a", { class: "stat-tile stat-tile--link", href }, children)
+    : el("div", { class: "stat-tile" }, children);
 }
 
 function renderCurrentCityTile() {
@@ -567,13 +589,17 @@ function renderCurrentCityTile() {
   const city = cityInfo(leg.location);
   const label = city ? city.label : leg.location;
   const sub = status === "current" ? "You're here now" : status === "done" ? "Trip complete" : "Next stop";
-  return renderStatTile("Current City", label, sub);
+  return renderStatTile("Current City", label, sub, false, `#${leg.id}`);
 }
 
 function renderTodayScheduleTile() {
+  const leg = getCurrentOrNextLeg();
   const dayDate = today().toLocaleDateString("en-NZ", { weekday: "long", day: "numeric", month: "long" });
-  return el("div", { class: "stat-tile" }, [
-    el("div", { class: "stat-tile-label" }, "Today's Schedule"),
+  return el("a", { class: "stat-tile stat-tile--link", href: `#${leg.id}` }, [
+    el("div", { class: "stat-tile-label stat-tile-label--link" }, [
+      el("span", {}, "Today's Schedule"),
+      chevronIcon(),
+    ]),
     el("div", { class: "stat-tile-subheading" }, dayDate),
     el("div", { class: "stat-tile-value stat-tile-value--sm" }, todaysScheduleText()),
   ]);
@@ -702,8 +728,58 @@ function renderTipTaxCard() {
   taxPctInput.addEventListener("input", updateTax);
   updateTax();
 
+  // Currency. The rate is entered by hand and remembered, rather than
+  // shipped as a hardcoded number or fetched live: a stale built-in rate
+  // would be invented data that looks real, and a live API would add an
+  // outbound call that fails exactly when it's needed (no signal, overseas).
+  // Entered once, it keeps working offline for the whole trip.
+  const fxAmountInput = el("input", {
+    type: "number",
+    inputmode: "decimal",
+    class: "calc-input",
+    placeholder: "Amount (USD $)",
+    min: "0",
+    step: "0.01",
+  });
+  const fxRateInput = el("input", {
+    type: "number",
+    inputmode: "decimal",
+    class: "calc-input calc-input--pct",
+    placeholder: "Rate",
+    value: loadState(STORAGE_KEYS.fxRate, { rate: "" }).rate || "",
+    min: "0",
+    step: "0.0001",
+  });
+  const fxResult = el("div", { class: "calc-result" }, "");
+  const fxHint = el(
+    "p",
+    { class: "calc-hint" },
+    "Rate = NZD per 1 USD. Set it once from your banking app; it's remembered and works offline."
+  );
+
+  function updateFx() {
+    const amt = parseFloat(fxAmountInput.value);
+    const rate = parseFloat(fxRateInput.value);
+    if (!rate || rate <= 0) {
+      fxResult.textContent = "";
+      return;
+    }
+    if (!amt || amt <= 0) {
+      fxResult.textContent = `US$1 ≈ NZ$${rate.toFixed(2)}`;
+      return;
+    }
+    fxResult.textContent = `US$${amt.toFixed(2)} ≈ NZ$${(amt * rate).toFixed(2)}`;
+  }
+  fxAmountInput.addEventListener("input", updateFx);
+  fxRateInput.addEventListener("input", () => {
+    const rate = parseFloat(fxRateInput.value);
+    saveState(STORAGE_KEYS.fxRate, { rate: rate > 0 ? String(rate) : "" });
+    updateFx();
+  });
+  updateFx();
+
   return card([
-    sectionHeadingInline("Tip & Sales Tax Calculator"),
+    sectionHeadingInline("Tip, Tax & Currency"),
     el("div", { class: "calc-section" }, [
       el("p", { class: "calc-subheading" }, "Tip"),
       tipAmountInput,
@@ -714,6 +790,12 @@ function renderTipTaxCard() {
       el("p", { class: "calc-subheading" }, "Sales tax"),
       el("div", { class: "calc-tax-row" }, [taxAmountInput, taxPctInput]),
       taxResult,
+    ]),
+    el("div", { class: "calc-section" }, [
+      el("p", { class: "calc-subheading" }, "USD to NZD"),
+      el("div", { class: "calc-tax-row" }, [fxAmountInput, fxRateInput]),
+      fxResult,
+      fxHint,
     ]),
   ]);
 }

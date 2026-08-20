@@ -301,6 +301,26 @@ main {
   letter-spacing: 0.04em;
   color: var(--muted);
 }
+/* Tiles that navigate to a leg page. Colour is inherited so the tile keeps
+   its normal look rather than turning link-blue; the chevron carries the
+   affordance instead. */
+.stat-tile--link {
+  color: inherit;
+  text-decoration: none;
+}
+.stat-tile--link:active {
+  background: color-mix(in srgb, var(--primary) 10%, var(--tint));
+}
+.stat-tile-label--link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+.tile-chevron {
+  display: inline-flex;
+  color: var(--accent);
+}
 .stat-tile-value {
   font-size: 20px;
   font-weight: 700;
@@ -1117,4 +1137,11 @@ main {
     --tint: #262b32;
   }
   .checkbox { border-color: #3a3f45; }
+}
+
+.calc-hint {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--muted);
+  margin-top: 6px;
 }
