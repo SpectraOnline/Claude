@@ -412,6 +412,30 @@ from scratch in eight months.
   before any content is written. It was a hard requirement for USA 2026;
   do not assume either way for 2027, and ask rather than guess.
 
+### Backlog / future features
+
+Ideas raised during the USA trip, parked for the 2027 build rather than
+retrofitted. Add to this list as things come up — it's cheaper to note an
+idea when it occurs than to reconstruct why it mattered.
+
+- **Export / backup of user content.** The single biggest gap the beta
+  exposed. Photos, expenses, receipts and ticked items exist on exactly one
+  phone with no copy anywhere. Two options, in increasing order of cost:
+  1. *Manual export* — a button that packages everything into a file the
+     user saves to Files/iCloud/Drive themselves. No server, no credentials,
+     no running cost. Deliverable in well under a day.
+  2. *Real sync to object storage* (Backblaze B2, R2, S3). Rejected for the
+     USA app for a specific reason worth remembering: a static site with no
+     backend has nowhere to hide a credential — anything in the JavaScript
+     is readable by anyone who can open the app, so the bucket key would
+     effectively be public. Doing it safely needs a Worker to sign uploads,
+     which means a backend, per-user identity, and deciding who can see
+     whose photos. That is the shared-vs-device-local decision above, not a
+     bolt-on.
+
+  If 2027 stays device-local, build option 1. If it goes shared, option 2
+  falls out of the backend that decision already requires.
+
 ### Lessons from the beta
 
 - **The app has two audiences, and only one was designed for.** It was
