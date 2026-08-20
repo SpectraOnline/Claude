@@ -16,6 +16,7 @@ const overlay = document.getElementById("overlay");
 const menuBtn = document.getElementById("menuBtn");
 const backBtn = document.getElementById("backBtn");
 const topBtn = document.getElementById("topBtn");
+const refreshBtn = document.getElementById("refreshBtn");
 
 // Transient (not persisted) — which note fields currently show their textarea.
 const editingNotes = new Set();
@@ -1814,6 +1815,14 @@ topBtn.addEventListener("click", () => {
 });
 
 window.addEventListener("scroll", updateTopBtn, { passive: true });
+
+// Installed to the home screen there's no address bar and no reload button,
+// and pull-to-refresh is inconsistent across iOS and Android. The service
+// worker is network-first so a reload genuinely fetches the latest deploy.
+refreshBtn.addEventListener("click", () => {
+  closeDrawer();
+  location.reload();
+});
 
 const PRIMARY_TAB_ROUTES = ["home", "packing", "budget", "bucket", "gallery"];
 

@@ -5,7 +5,7 @@
 // so updates show up immediately instead of one reload behind. Cache is
 // only used as a fallback when there's genuinely no network (offline use
 // while travelling), not as the default source.
-const CACHE = "taylor-usa-2026-v7";
+const CACHE = "taylor-usa-2026-v8";
 const SHELL = [
   "./",
   "index.html",
@@ -43,6 +43,11 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("fetch", (event) => {
   const req = event.request;
   if (req.method !== "GET") return;
+  // Never intercept or cache Cloudflare Access endpoints (/cdn-cgi/access/*,
+  // including the logout link in the drawer). Caching an auth response, or
+  // serving a stale one offline, would break sign-out in ways that are very
+  // hard to diagnose from a phone.
+  if (new URL(req.url).pathname.startsWith("/cdn-cgi/")) return;
   event.respondWith(
     // cache: "no-store" bypasses the browser's own HTTP cache too, not just
     // this service worker's Cache Storage — otherwise a fresh deploy can

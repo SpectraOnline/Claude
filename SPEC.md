@@ -546,3 +546,13 @@ from scratch in eight months.
   30-minute drive time precisely so it can be ruled out at a glance. The
   Miami return leg is deliberately left without panels — it's an airport
   hotel the night before a flight, where a list of attractions has no use.
+- Added **Refresh** and **Sign out** to the More drawer under an "App"
+  section. Installed to the home screen there is no address bar and no
+  reload button, and pull-to-refresh behaves inconsistently between iOS and
+  Android, so there was no reliable way to pull a new deploy or to leave a
+  session. Sign out points at `/cdn-cgi/access/logout` on the app's own
+  domain (rather than the team domain) because that clears the application
+  cookie immediately; it revokes the Access session across all applications,
+  as per-application logout isn't offered. The service worker now skips
+  `/cdn-cgi/*` entirely — caching or offline-serving an auth response would
+  break sign-out in ways that are near-impossible to diagnose from a phone.

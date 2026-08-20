@@ -191,6 +191,16 @@ p { margin: 0; }
   color: var(--text);
 }
 .drawer-link:hover { background: var(--bg); }
+/* A <button> in the drawer needs these to sit flush with the <a> links —
+   buttons don't inherit font, and default to centred text and a border. */
+.drawer-link--btn {
+  width: 100%;
+  text-align: left;
+  font-family: inherit;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
 .drawer-link--active {
   background: color-mix(in srgb, var(--primary) 14%, var(--tint));
   color: var(--accent);
