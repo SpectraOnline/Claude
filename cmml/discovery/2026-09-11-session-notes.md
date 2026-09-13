@@ -4,12 +4,31 @@ Present: Simon (Dad), Yvonne (Mum), Anna. Recorded in Wispr Flow.
 Source: https://notes.wisprflow.ai/shared/xS-Vlac2zJGjk48yyV7B7B3BhxssZluTlFPlT-OKPNE
 (full transcript lives there; re-fetch with the Wispr Flow share-link tool)
 
-> **Speaker labels in the transcript are unreliable.** The diarisation ran
-> two labels for three people. For most of the session Anna's questions are
-> labelled "Yvonne Godfrey", and Dad's answers are also labelled "Yvonne
-> Godfrey" — "Simon Godfrey" only appears as a label in the last third. So
-> anything attributed to Yvonne in the first two thirds may be Simon or Anna.
-> Attributions below are reconstructed from context, not from the labels.
+> **Speaker labels in the transcript are unreliable — and re-labelling them in
+> Wispr Flow did not fix the copy the API serves.** The diarisation ran two
+> labels for three people for most of the session; "Simon Godfrey" only starts
+> appearing as a label in the last third. Anna re-assigned the speakers in Wispr
+> Flow on 13 Sep, but a re-fetch afterwards returned a byte-identical transcript
+> (138,577 chars, same labels) through both the shared-link view and the
+> owner-side meeting view, even though the note's modified_at had moved. The
+> stored plaintext transcript appears not to be regenerated when speakers are
+> renamed, so the rename shows in the Wispr Flow UI only.
+>
+> Confirmed example: "just for the record, today is Friday, the 11th of
+> September" is labelled Yvonne but was said by Anna. So the label "Yvonne
+> Godfrey" carries Anna's speech in places, and "Anna Godfrey Moore" carries
+> both Yvonne's and Simon's. It is not a clean swap — it is genuinely mixed.
+>
+> **Every attribution below is reconstructed from content, not from the labels.**
+> Where a statement is first-person about Simon's own body it is Simon; where it
+> reads from the question guide it is Anna; where it narrates Simon in the third
+> person it is Yvonne. A handful worth confirming out loud rather than trusting:
+>
+> - who answered "Annoying" to the daily check-in prompt (read as Simon)
+> - who set the "not for Jono or Michelle" boundary (read as Yvonne)
+> - who gave the one-job answer, "keep track of medications and measurements"
+> - "I want to see the truth" (read as Simon, and corroborated later by
+>   "he just wants the truth, as he says")
 >
 > The Flow summary also opens with "app for Dad (Yvonne Godfrey)" — wrong;
 > Dad is Simon, Yvonne is Mum.
