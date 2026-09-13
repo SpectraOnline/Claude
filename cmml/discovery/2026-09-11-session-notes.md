@@ -19,16 +19,36 @@ Source: https://notes.wisprflow.ai/shared/xS-Vlac2zJGjk48yyV7B7B3BhxssZluTlFPlT-
 > Godfrey" carries Anna's speech in places, and "Anna Godfrey Moore" carries
 > both Yvonne's and Simon's. It is not a clean swap — it is genuinely mixed.
 >
+> **Why re-labelling can never fix this.** A timestamped export of the same
+> transcript (2,302 turns over 111:54) shows Simon's first distinct turn at
+> **87:34** — he has no speaker segment at all for the first 78% of the
+> recording. Both other labels demonstrably carry more than one person: at 70:22
+> the label "Anna Godfrey Moore" answers a question and then at 70:23 asks the
+> follow-up, which is two different people under one label. So the diarisation
+> merged speakers rather than mislabelling them. Renaming speakers in Wispr Flow
+> cannot recover what was never separated; only re-running diarisation, or
+> correcting by hand, will.
+>
 > **Every attribution below is reconstructed from content, not from the labels.**
 > Where a statement is first-person about Simon's own body it is Simon; where it
-> reads from the question guide it is Anna; where it narrates Simon in the third
-> person it is Yvonne. A handful worth confirming out loud rather than trusting:
+> reads from the question guide it is Anna; where it narrates or addresses Simon
+> in the second or third person it is Yvonne or Anna. The four that carry weight,
+> resolved against the surrounding turns:
 >
-> - who answered "Annoying" to the daily check-in prompt (read as Simon)
-> - who set the "not for Jono or Michelle" boundary (read as Yvonne)
-> - who gave the one-job answer, "keep track of medications and measurements"
-> - "I want to see the truth" (read as Simon, and corroborated later by
->   "he just wants the truth, as he says")
+> - **"Annoying"** on the daily check-in pop-up (70:22) — **Simon**, high
+>   confidence. The question is put to him and the interviewer's next line is
+>   "so you'd rather... put it manually", addressed to him.
+> - **"not for Jono or Michelle"** (27:39) — **Yvonne**, good confidence. Preceded
+>   by "even though you girls will have access to it... for your eyes only", so a
+>   parent addressing the daughters.
+> - **"keep track of medications and measurements"**, the one-job answer (21:05) —
+>   **Yvonne**, medium confidence. The same voice immediately adds the per-marker
+>   trajectory idea in the second person ("your neutrophils, your monocytes"),
+>   and separately says she had been feeding Simon's blood counts to AI, which is
+>   where that idea came from.
+> - **"I want to see the truth"** (84:13) — **Simon**, high confidence. Answering
+>   a question put to him, and corroborated later by "he just wants the truth,
+>   as he says."
 >
 > The Flow summary also opens with "app for Dad (Yvonne Godfrey)" — wrong;
 > Dad is Simon, Yvonne is Mum.
