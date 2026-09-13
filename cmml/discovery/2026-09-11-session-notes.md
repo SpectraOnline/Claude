@@ -224,6 +224,38 @@ online. Home internet reliable, phone signal at the hospital fine.
 - **Simon** — send the updated medications spreadsheet (post-Julian, reduced zinc) and
   share the Excel with the weight and BP tabs
 
+## Appointment recording — requirements learned the hard way
+
+The discovery session itself was recorded in Wispr Flow and its speaker
+attribution failed badly (see the caveat at the top). Since the app is meant to
+have its own record button for appointments, that failure is a direct design
+input:
+
+- **Log who started it.** The app knows the logged-in user who pressed record,
+  on which device, at what time, and which appointment it's attached to. That is
+  one known voice in the room for free — and it will be Yvonne essentially every
+  time, since she has already taken that job ("Dad will be busy listening").
+- **Constrain the speaker list from the appointment.** Appointments are already
+  in the app, so a recording attached to the 25 Sep appointment knows its likely
+  speakers are Yvonne, Simon and Lucy Pemberton. Correcting a speaker then
+  becomes a two-tap choice from a short list, not free text.
+- **A spoken opening line does more than any of it.** Yvonne saying "This is
+  Yvonne, here with Simon, seeing Lucy Pemberton, 25th of September" gives a
+  clean labelled sample of her voice at a known position, names who is present,
+  and dates the recording. Costs nothing and works with any engine.
+- **Voice enrolment** is the option if it's still not good enough: ~30 seconds
+  of reference audio per person turns blind diarisation into speaker
+  identification.
+- **Corrections must persist into every export.** The specific thing that failed
+  here: reassigning speakers changed the Wispr Flow UI but not the stored
+  transcript, so every copy pulled afterwards still carried the original labels.
+- **Treat speaker as a best-guess field.** What was said, and when, is the
+  reliable layer. Who said it is an editable guess, and should look like one.
+- Mic placement: device flat on the desk between people, not in a bag, pocket or
+  hand. Worth noting the pair that broke this recording was Anna and Yvonne —
+  two related women with similar voices. A clinic room is Yvonne, Simon and a
+  clinician, which should separate more easily.
+
 ## Flagged for the build, not yet resolved
 
 - **ManageMyHealth → Apple Health was assumed in the room, not verified.** The whole
