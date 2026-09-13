@@ -92,8 +92,17 @@ Standard practice: blood test a few days before any Lucy appointment.
 
 ## Numbers captured
 
-- **Transfusion trigger: haemoglobin below 80.** Goal is "normal", ~150.
-- Can't fly below 80. Lucy will top him up before travel — car travel unrestricted.
+- **Haemoglobin 80 is the international travel floor**, not the transfusion
+  trigger — a number the haematologist stated, derived from bloods. Below it he
+  cannot fly; Lucy will top him up before travel. Car travel is unrestricted.
+  Corrected 13 Sep: the session notes originally read this as the transfusion
+  threshold, which it is not.
+- **The transfusion threshold is not known.** It has never been stated to the
+  family. The 22 Jul transfusion followed a haemoglobin of 85, so it is not 80.
+  On the list for Lucy on 25 September: is it a number or symptom-driven?
+- The "normal ~150" figure discussed in the session does not match the lab's
+  own reference range of 130–175 g/L; 150–400 is the platelet range on the same
+  report and the two appear to have been conflated.
 - **EPO: Venocrit 10,000 IU / 1 mL, one syringe weekly, Tuesdays.** Stored in fridge.
   Nurse gave the first; Dad self-administers into the abdomen now. 2 doses so far.
   6 weeks' supply, one repeat left. Dose may double at the 25 Sep appointment
