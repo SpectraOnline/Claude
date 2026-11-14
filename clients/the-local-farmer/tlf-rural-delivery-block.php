@@ -23,13 +23,14 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 const TLF_RURAL_USE_GSS = false; // Phase 2 switch.
 
 function tlf_address_is_rural( array $pkg_dest ) {
-	$text = implode( ' ', array_filter( array(
-		$pkg_dest['address'] ?? $pkg_dest['address_1'] ?? '',
-		$pkg_dest['address_2'] ?? '',
-		$pkg_dest['city'] ?? '',
-	) ) );
-	if ( preg_match( '/\b(R\.?\s?D\.?\s*\d{1,2}|rural\s+delivery)\b/i', $text ) ) {
-		return true;
+	// Check each line on its own. "RD n" counts only at the start of a line,
+	// after a comma, or after a street word (e.g. "Smith Road RD 3"), so a
+	// town address like "12 Main Rd" + unit "2" is NOT caught.
+	$re = '/(?:^|,|\b(?:road|rd|street|st|lane|ln|highway|hwy|drive|dr|avenue|ave|way|place|pl|crescent|cres|terrace|tce)\.?\s)\s*R\.?\s?D\.?\s*\d{1,2}(?=\s*$|\s*,|\s+[A-Za-z])|\brural\s+delivery\b/i';
+	foreach ( array( 'address', 'address_1', 'address_2', 'city' ) as $field ) {
+		if ( ! empty( $pkg_dest[ $field ] ) && preg_match( $re, trim( (string) $pkg_dest[ $field ] ) ) ) {
+			return true;
+		}
 	}
 	if ( TLF_RURAL_USE_GSS ) {
 		return tlf_gss_says_rural( $pkg_dest );
