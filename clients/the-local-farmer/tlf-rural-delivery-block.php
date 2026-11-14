@@ -20,7 +20,9 @@
 
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
-const TLF_RURAL_USE_GSS = false; // Phase 2 switch.
+// Phase 2: GoSweetSpot check runs only when both constants are set in wp-config.php:
+// define( 'TLF_GSS_ACCESS_KEY', '...' ); define( 'TLF_GSS_SITE_ID', '...' );
+define( 'TLF_RURAL_USE_GSS', defined( 'TLF_GSS_ACCESS_KEY' ) && defined( 'TLF_GSS_SITE_ID' ) );
 
 function tlf_address_is_rural( array $pkg_dest ) {
 	// Check each line on its own. "RD n" counts only at the start of a line,
@@ -79,15 +81,57 @@ function tlf_rural_msg() {
 }
 
 /**
- * Phase 2 stub: GoSweetSpot POST v2/addressvalidation (per NZ Couriers CI,
- * 30 Sep 2026). Request/response fields still to confirm against the GSS API
- * docs once the key is in hand. Result cached 30 days per address. Fails open
- * (returns false) if GSS is down, so checkout never breaks.
+ * Phase 2: GoSweetSpot POST v2/addressvalidation (NZ Couriers' own rural flag).
+ * Docs: api-docs.gosweetspot.com/docs/address-validation/v2-addressvalidation.html
+ * Rural if the NZCouriers entry in AvailableServices says IsRural (falls back to
+ * Address.IsRural). Cached 30 days per address. Fails open (not rural) if GSS is
+ * slow or down, so checkout never breaks; the RD check still applies.
  */
 function tlf_gss_says_rural( array $d ) {
-	$key = 'tlf_gss_rural_' . md5( strtolower( implode( '|', $d ) ) );
+	$street = trim( (string) ( $d['address'] ?? $d['address_1'] ?? '' ) );
+	$pc     = trim( (string) ( $d['postcode'] ?? '' ) );
+	if ( '' === $street || '' === $pc || ( isset( $d['country'] ) && 'NZ' !== $d['country'] ) ) {
+		return false;
+	}
+	$body = array(
+		'Consignee' => 'Checkout address check',
+		'Address'   => array(
+			'BuildingName'  => '',
+			'StreetAddress' => $street,
+			'Suburb'        => trim( (string) ( $d['address_2'] ?? '' ) ),
+			'City'          => trim( (string) ( $d['city'] ?? '' ) ),
+			'PostCode'      => $pc,
+			'CountryCode'   => 'NZ',
+		),
+	);
+	$key    = 'tlf_gss_rural_' . md5( strtolower( wp_json_encode( $body['Address'] ) ) );
 	$cached = get_transient( $key );
-	if ( false !== $cached ) { return 'yes' === $cached; }
-	// TODO: wp_remote_post to GSS with access_key + site_id from wp-config constants.
-	return false;
+	if ( false !== $cached ) {
+		return 'yes' === $cached;
+	}
+	$res = wp_remote_post( 'https://api.gosweetspot.com/v2/addressvalidation', array(
+		'timeout' => 4,
+		'headers' => array(
+			'access_key'   => TLF_GSS_ACCESS_KEY,
+			'site_id'      => TLF_GSS_SITE_ID,
+			'Content-Type' => 'application/json',
+		),
+		'body'    => wp_json_encode( $body ),
+	) );
+	if ( is_wp_error( $res ) || 200 !== (int) wp_remote_retrieve_response_code( $res ) ) {
+		return false; // fail open, do not cache
+	}
+	$json  = json_decode( wp_remote_retrieve_body( $res ), true );
+	$addr  = $json['Address'] ?? $json['address'] ?? array();
+	$rural = null;
+	foreach ( (array) ( $addr['AvailableServices'] ?? array() ) as $svc ) {
+		if ( isset( $svc['Carrier'] ) && 0 === strcasecmp( $svc['Carrier'], 'NZCouriers' ) ) {
+			$rural = ! empty( $svc['IsRural'] );
+		}
+	}
+	if ( null === $rural ) {
+		$rural = ! empty( $addr['Address']['IsRural'] ?? $addr['IsRural'] ?? false );
+	}
+	set_transient( $key, $rural ? 'yes' : 'no', 30 * DAY_IN_SECONDS );
+	return $rural;
 }
