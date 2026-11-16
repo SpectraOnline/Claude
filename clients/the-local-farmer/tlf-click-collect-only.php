@@ -37,3 +37,20 @@ add_filter( 'woocommerce_package_rates', function ( $rates, $package ) {
 	}
 	return $rates;
 }, 110, 2 );
+
+/**
+ * Short haul and Long haul have no Click & Collect, so a collect-only item
+ * there leaves no options. Show a clear message instead of the rural one.
+ */
+function tlf_collect_only_no_options_msg( $html ) {
+	if ( function_exists( 'WC' ) && WC()->cart ) {
+		foreach ( WC()->cart->get_cart() as $item ) {
+			if ( ! empty( $item['data'] ) && 'click-collect-only' === $item['data']->get_shipping_class() ) {
+				return '<p>Some items in your cart are Click &amp; Collect only and can&rsquo;t be delivered to this address. Please remove them to get delivery, or contact us to arrange collection.</p>';
+			}
+		}
+	}
+	return $html;
+}
+add_filter( 'woocommerce_no_shipping_available_html', 'tlf_collect_only_no_options_msg', 20 );
+add_filter( 'woocommerce_cart_no_shipping_available_html', 'tlf_collect_only_no_options_msg', 20 );
